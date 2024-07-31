@@ -1,0 +1,45 @@
+# pve installer grub theme
+
+title-text: "Proxmox VE 8.2 (iso release 1) - https://www.proxmox.com/"
+
+desktop-image: "logo.png"
+
+
+# Show the boot menu
++ boot_menu {
+  left = 20%
+  top = 55%
+  width = 50%
+  height = 35%
+
+  item_color = "#000"
+  selected_item_color = "#B08458"
+  item_height = 26
+  item_padding = 0
+  item_icon_space = 0
+  item_spacing = 1
+}
+
++ label {
+  left = 20%
+  top = 90%
+  width = 60%
+  height = 35%
+
+  color = "#777"
+  align = "center"
+
+  text = "enter: select, arrow keys: navigate, e: edit entry, esc: back"
+}
+
++ label {
+   id = "__timeout__"
+   text = "%d second(s) until boot"
+   left = 35%
+   top = 85%
+   width = 30%
+   height = 35%
+
+   color = "#777"
+   align = "center"
+}

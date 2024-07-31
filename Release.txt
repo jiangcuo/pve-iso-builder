@@ -1,0 +1,933 @@
+Release Notes:
+--------------
+
+24.04.2024: Proxmox Virtual Environment 8.2
+
+ - Debian 12.5 Bookworm including latest security updates
+
+ - Kernel 6.8 with ZFS 2.2.3 + relevant backports for 6.8 kernel
+
+ - QEMU 8.1.5, LXC 6.0.0
+
+ - latest Ceph 18.2.2 Reef and Ceph 17.2.7 Quincy
+
+ - Automated installation using an flexible answer file
+
+ - New API and UI integrated VMWare ESXi importer
+
+ - Backup fleecing (write cache) for virtual machines
+
+ - Opt-in new firewall implementation using nftables
+
+ - Seamless upgrade from Proxmox VE 7.4 (EOL 2024-07), see:
+   https://pve.proxmox.com/wiki/Upgrade_from_7_to_8
+
+ - Many more features, misc. bug fixes and improvements, for more details see:
+   https://pve.proxmox.com/wiki/Roadmap#Release_History
+
+07.02.2024: Proxmox Virtual Environment 8.1 - ISO Refresh
+
+ - Debian 12.4 Bookworm including latest security updates
+
+ - update memtest86+ shipped on ISO to version 7.0
+
+ - Updated package set to include new kernel and ZFS version so users can be
+   reassured that the ZFS version in use is safe from recent (unlikely)
+   corruption issues. As while fixes where backported to 2.2.0-pve4, the base
+   2.2.0 version might mislead some users that are not knowing about our
+   downstream work.
+
+ - various bug fixes all over the place
+
+23.11.2023: Proxmox Virtual Environment 8.1
+
+ - Debian 12.2 Bookworm
+
+ - Kernel 6.5 with ZFS 2.2
+
+ - QEMU 8.1.2, LXC 5.0.2
+
+ - latest Ceph 18.2.0 Reef
+
+ - latest Ceph 17.2.7 Quincy
+
+ - Secure-Boot enabled ISO installer and kernel
+
+ - Install Software-Defined Network stack by default
+
+ - New notification framework with support for gotify and (direct) SMTP
+
+ - Seamless upgrade from Proxmox VE 7.4, see:
+   https://pve.proxmox.com/wiki/Upgrade_from_7_to_8
+
+ - Many more features, misc. bug fixes and improvements, for more details see:
+   https://pve.proxmox.com/wiki/Roadmap#Release_History
+
+22.06.2023: Proxmox Virtual Environment 8.0
+
+ - Debian 12 Bookworm
+
+ - Kernel 6.2 with ZFS 2.1.12
+
+ - QEMU 8.0.2, LXC 5.0.2
+
+ - latest Ceph 17.2.6 Quincy
+
+ - New enterprise repository for Ceph
+
+ - Integrate host network bridge and VNet access when configuring virtual
+   guests into Proxmox VE's ACL system.
+
+ - Hardware resource mappings for more convenient HW passthrough, especially
+   for unprivileged users.
+
+ - LDAP/AD realm sync jobs.
+
+ - Seamless upgrade from Proxmox VE 7.4, see:
+   https://pve.proxmox.com/wiki/Upgrade_from_7_to_8
+
+ - Many more features, misc. bug fixes and improvements, for more details see:
+   https://pve.proxmox.com/wiki/Roadmap#Release_History
+
+09.06.2023: Proxmox Virtual Environment 8.0 BETA
+
+ - Debian 12 Bookworm testing
+
+ - Kernel 6.2 with ZFS 2.1.11
+
+ - QEMU 8.0.2, LXC 5.0.2
+
+ - latest Ceph 17.2.6 Quincy
+
+ - New enterprise repository for Ceph
+
+ - Integrate host network bridge and VNet access when configuring virtual
+   guests into Proxmox VE's ACL system.
+
+ - Seamless upgrade from Proxmox VE 7.4, see
+
+ - Many more features, misc. bug fixes and improvements, for more details see:
+   https://pve.proxmox.com/wiki/Roadmap#Release_History
+
+23.03.2023: Proxmox Virtual Environment 7.4
+
+ - Debian 11.6 Bullseye including latest (security) updates
+
+ - Kernel 5.15 with ZFS 2.1.9
+
+ - QEMU 7.2, LXC 5.0.2
+
+ - latest Ceph 17.2.5 Quincy and 16.2.11 Pacific
+
+ - Expand HA Cluster Resource Scheduling (CRS) support with rebalance-on-start
+   option and manual maintenance mode
+
+ - New dark theme for the web-interface
+
+ - Guests in resource tree can now be sorted by their name, not only VMID.
+
+ - Many more features, misc. bug fixes and improvements, for more details see:
+   https://pve.proxmox.com/wiki/Roadmap#Release_History
+
+22.11.2022: Proxmox Virtual Environment 7.3
+
+ - Debian 11.5 Bullseye including latest (security) updates
+
+ - Kernel 5.15 with ZFS 2.1.6
+
+ - QEMU 7.1, LXC 5.0.0
+
+ - Ceph Quincy support and default for new installations
+
+ - latest Ceph 17.2.5 Quincy and 16.2.10 Pacific
+
+ - Initial HA Cluster Resource Scheduling (CRS) support
+
+ - Tags for Virtual Guests in the web-interface for better categorizing,
+   searching, ...
+
+ - Support for Proxmox Offline Mirror to update and manage subscriptions of air
+   gapped system
+
+ - support creating ZFS dRAID pools
+
+ - Many more features, misc. bug fixes and improvements, for more details see:
+   https://pve.proxmox.com/wiki/Roadmap#Release_History
+
+04.05.2022: Proxmox Virtual Environment 7.2
+
+ - Debian 11.3 Bullseye including latest (security) updates
+
+ - Kernel 5.15 with ZFS 2.1.4
+
+ - QEMU 6.2, LXC 4.0.12
+
+ - latest Ceph Pacific and Octopus
+
+ - support creating erasure coded pools
+
+ - Improve backup and restore experience by providing:
+   - Overrides of basic settings on restore
+   - Note templates to allow one saving meta information (e.g., VM/CT name)
+     along side backup easily
+   - Allow to set protection status and notes directly when creating a manual backup
+
+  - VirGL support for QEMU VMs
+
+  - Many more features, misc. bug fixes and improvements, for more details see:
+    https://pve.proxmox.com/wiki/Roadmap#Release_History
+
+07.12.2021: Proxmox Virtual Environment 7.1 (ISO release 2)
+
+ - Debian 11.1 Bullseye including latest (security) updates
+
+ - QEMU and Kernel 5.13 improvements regarding various VirtIO, io-uring and
+   SATA usage combinations
+
+ - Latest misc. bug fixes and improvements
+
+17.11.2021: Proxmox Virtual Environment 7.1
+
+ - Debian 11.1 Bullseye including latest (security) updates
+
+ - Kernel 5.13
+
+ - QEMU 6.1
+
+ - Ceph Pacific and Octopus
+
+ - More flexible scheduling of backup jobs with the systemd calendar-event
+   inspired format
+
+ - support configuring multiple Two-Factors per user and add WebAuthn and
+   Recovery Key support
+
+ - QEMU TPM and improved secure-boot support required for Windows 11 and 2022
+   VMs
+
+  - Many more features, misc. bug fixes and improvements, for more details see:
+    https://pve.proxmox.com/wiki/Roadmap#Release_History
+
+06.09.2021: Proxmox Virtual Environment 7.0 ISO release 2
+
+ - Updated base system of ISO to final Debian 11.0 Bullseye release
+
+ - Latest misc. bug fixes and improvements
+
+06.07.2021: Proxmox Virtual Environment 7.0
+
+ - Debian 11 Bullseye
+
+ - Kernel 5.11
+
+ - QEMU 6.0
+
+ - Ceph Pacific and Octopus
+
+ - BTRFS as technology preview
+
+ - Render Node and Guest notes as Markdown
+
+ - APT Repository GUI
+
+ - first public Proxmox VE 7.0 release
+
+24.06.2021: Proxmox Virtual Environment 7.0 BETA
+
+ - Debian 11 Bullseye Testing
+
+ - Kernel 5.11
+
+ - Ceph Pacific and Octopus
+
+ - BTRFS as technology preview
+
+ - Render Node and Guest notes as Markdown
+
+ - first public Proxmox VE 7.0 BETA release
+
+28.04.2021: Proxmox Virtual Environment 6.4
+
+  - Based on Debian 10.9 Buster
+
+  - Updated kernel (5.4.106) and include latest security fixes
+
+  - ZFS 2.0.4
+
+  - QEMU 5.2
+
+  - Ceph 15.2.11 Octopus
+
+  - Ceph 14.2.20 Nautilus
+
+  - allow one to restore single files from backups located on a Proxmox Backup Server
+
+  - live-restore backups located on a Proxmox Backup Server
+
+  - allow one to edit Ceph pools and set target-size or target-ratio, the CRUSH
+    rule to use, and the PG-Autoscaler.
+
+  - Many more features, misc. bug fixes and improvements, for more details see:
+    https://pve.proxmox.com/wiki/Roadmap#Release_History
+
+26.11.2020: Proxmox Virtual Environment 6.3
+
+  - Based on Debian 10.5 Buster
+
+  - Updated kernel (5.4.73) and include latest security fixes
+
+  - ZFS 0.8.5
+
+  - QEMU 5.1
+
+  - Ceph 15.2.6 Octopus (initial stable integration)
+
+  - Ceph 14.2.15 Nautilus
+
+  - initial stable Proxmox Backup Server integration
+
+  - Misc. bug fixes and improvements, for more details see:
+    https://pve.proxmox.com/wiki/Roadmap#Release_History
+
+12.05.2020: Proxmox Virtual Environment 6.2
+
+  - Based on Debian 10.4 Buster
+
+  - Updated kernel to 5.4 LTS based one
+
+  - ZFS 0.8.3
+
+  - Ceph v14.2.9 Nautilus
+
+  - QEMU 5.0
+
+  - LXC 4.0
+
+  - LXCFS 4.0
+
+  - Misc. bug fixes and improvements, for more details see:
+    https://pve.proxmox.com/wiki/Roadmap#Release_History
+
+06.03.2020: Proxmox Virtual Environment 6.1 (ISO release 2)
+
+  - Based on Debian 10.3 Buster
+
+  - Updated kernel (5.3.18) to fix cursor issues on systems using a matrox
+    graphic adapter (MGA)
+
+  - ZFS 0.8.3
+
+  - Misc. bug fixes and improvements
+
+04.12.2019: Proxmox Virtual Environment 6.1
+
+  - Based on Debian 10.2 Buster
+
+  - Updated kernel (5.3.10) and include latest security fixes
+
+  - Qemu 4.1.1
+
+  - LXC 3.2.1
+
+  - Ceph v14.2.4.1 Nautilus
+
+  - ZFS 0.8.2
+
+  - installation on disks with 4k native blocks (4kn)
+
+  - Misc. bug fixes and improvements
+
+
+16.07.2019: Proxmox Virtual Environment 6.0
+
+  - Based on Debian 10 Buster
+
+  - Kernel 5.0.15
+
+  - Ceph v14.2.1 Nautilus
+
+  - ZFS 0.8.1
+
+  - ZFS on EFI and/or NVMe installation
+
+  - Improved installer handling of re-used disks with exising 'pve' VGs
+
+  - Qemu 4.0.0
+
+  - LXC 3.1.0
+
+  - New/updated LXC templates
+
+  - corosync 3
+
+  - Misc. bug fixes and improvements
+
+04.07.2019: Proxmox Virtual Environment 6.0 BETA 1
+
+  - Kernel 5.0.15
+
+  - Ceph v14.2.1 Nautilus
+
+  - ZFS 0.8.1
+
+  - ZFS on EFI and/or NVMe installation
+
+  - Qemu 4.0.0
+
+  - LXC 3.1.0
+
+  - corosync 3
+
+  - Misc. bug fixes and improvements
+
+09.04.2019: Proxmox Virtual Environment 5.4 (ISO release 1)
+
+  - Kernel 4.15.18
+
+  - Ceph v12.2.11 (stable)
+
+  - ZFS 0.7.13
+
+  - Qemu 2.12.1
+
+  - LXC 3.1.0
+
+  - ship xserver-xorg-video-all X server output drivers
+
+  - Misc. bug fixes and improvements
+
+23.01.2019: Proxmox Virtual Environment 5.3 (ISO release 2)
+
+  - apt 1.4.9 (security fixes)
+
+  - systemd 232-25+deb9u8 (security fixes)
+
+  - LXC 3.1.0
+
+04.12.2018: Proxmox Virtual Environment 5.3 (ISO release 1)
+
+  - Kernel 4.15.18
+
+  - Ceph v12.2.8 (stable)
+
+  - ZFS 0.7.12
+
+  - Qemu 2.12.1
+
+  - LXC 3.0.2
+
+  - do not create a swap zvol on installation with ZFS
+
+  - Misc. bug fixes and improvements
+
+16.05.2018: Proxmox Virtual Environment 5.2 (ISO release 1)
+
+  - Kernel 4.15.17
+
+  - Ceph v12.2.5 (stable)
+
+  - ZFS 0.7.8
+
+  - Qemu 2.11.1
+
+  - LXC 3.0.0
+
+  - Misc. bug fixes and improvements
+
+21.12.2017: Proxmox Virtual Environment 5.1 (ISO release 3)
+
+  - update kernel to fix Intel SPI / Lenovo BIOS bug
+
+18.12.2017: Proxmox Virtual Environment 5.1 (ISO release 2)
+
+  - Kernel 4.13.13
+
+  - Ceph v12.2.2 (stable)
+
+  - ZFS 0.7.3
+
+  - Qemu 2.9.1
+
+  - LXC 2.1.0
+
+  - Misc. bug fixes and improvements
+
+24.10.2017: Proxmox Virtual Environment 5.1
+
+  - Kernel 4.13.4
+
+  - Ceph v12.2.1 (stable)
+
+  - ZFS 0.7.2
+
+  - Qemu 2.1
+
+  - LXC 2.1.0
+
+  - Misc. bug fixes and improvements
+
+09.08.2017: Proxmox Virtual Environment 5.0
+
+  - Kernel 4.10.17
+
+  - Ceph v12.1.2 luminous (technology preview)
+
+  - Installer bug fixes
+
+  - Misc. bug fixes and improvements
+
+04.07.2017: Proxmox Virtual Environment 5.0
+
+  - Based on Debian Stretch 9.0
+
+  - Kernel 4.10.15
+
+  - Qemu 2.9
+
+  - LXC: update to 2.0.8
+
+  - New/updated LXC templates
+
+  - New asynchronous replication feature (needs ZFS, technology preview)
+
+  - Updated/improved noVNC console
+
+  - Ceph v12.1.0 luminous (technology preview)
+
+  - Improved installation ISO
+
+  - Lots of bug fixes and improvements
+
+16.05.2017: Proxmox Virtual Environment 5.0 Beta 2
+
+  - Improved handling of re-used disks in installer
+
+  - Improved handling of network devices in installer
+
+  - Update to kernel 4.10.8
+
+  - Update to Qemu 2.9
+
+  - Lots of bug fixes and improvements
+
+22.03.2017: Proxmox Virtual Environment 5.0 Beta 1
+
+  - Based on Debian Stretch
+
+  - Kernel 4.10
+
+  - Many small improvements and bug fixes
+
+09.12.2016: Proxmox Virtual Environment 4.4
+
+   - update kernel to 4.4.35
+
+   - improved GUI, cluster dashboard, ceph dashboard
+
+   - KVM: update to qemu 2.7.0
+
+   - LXC: update to 2.0.6
+
+   - LXC: implement new restart migration
+
+   - LXC: CPU limitations for containers
+
+   - LXC: unprivileged containers
+
+   - HA: improved GUI
+
+   - improved reference documentation
+
+   - Installer: support more than 8 ZFS disks
+
+   - many small improvements and bug fixes
+
+27.09.2016: Proxmox Virtual Environment 4.3
+
+   - update to kernel 4.4.19
+
+   - update to Debian 8.6
+
+   - improved GUI, online help, better disk management, ...
+
+   - KVM: update to qemu 2.6.1
+
+   - LXC: update to 2.0.4
+
+   - ship with new reference documentation
+
+   - many small improvements and bug fixes
+
+17.06.2016: Proxmox Virtual Environment 4.2 update
+
+   - update to kernel 4.4.10
+
+   - update to Debian 8.5
+
+   - many small improvements and bug fixes
+
+27.04.2016: Proxmox Virtual Environment 4.2
+
+  - update to kernel 4.4.6
+
+  - new GUI based on ExtJS 6
+
+  - KVM: update to qemu 2.5
+
+  - LXC: add support for Alpine Linux and Ubuntu 16.04
+
+  - LXC: improved container setup
+
+  - many new and improved manual pages
+
+  - many other small improvements and bug fixes
+
+11.12.2015: Proxmox Virtual Environment 4.1
+
+  - update to kernel 4.2.6
+
+  - improved startup/shutdown behavior (systemd)
+
+  - enable NTP by default
+
+  - installer: allow up to 8 disks for ZFS
+
+  - KVM: add qemu agent GUI option
+
+  - KVM: update network boot ROMs
+
+  - Improve HA GUI for users with restricted permissions
+
+  - add Galician language to GUI
+
+  - LXC: add mount points (and resize) to GUI
+
+  - LXC: add support for Fedora 22 and Debian stretch/sid, Ubuntu 15.10
+
+  - LXC: support unpriviledged containers (technology preview)
+
+  - storage: added LVM thin support (technology preview)
+
+  - added new pvereport command
+
+  - many other small improvements and bug fixes
+
+05.10.2015: Proxmox Virtual Environment 4.0
+
+  - based on Debian 8.2
+
+  - new kernel 4.2.1
+
+  - update qemu to 2.4
+
+  - new high availability manager
+
+  - bash completion support
+
+  - IPv6 support
+
+  - include LXC (and removed openvz)
+
+  - added DRBD9 with drbdmanage (technology preview)
+
+  - countless bug fixes and package updates (for all details 
+    see bugtracker and GIT)
+
+19.02.2015: Proxmox Virtual Environment 3.4
+
+  - add ZFS support
+    * installer supports all ZFS RAID levels.
+
+  - pve-manager (GUI) updates
+    * openvz: implement suspend/resume
+    * qemu GUI: support new pending changes API
+    * new 'disconnect' button on the network edit panel
+    * vzdump: new option --stop to abort running backup job
+    * add NUMA option to processor form
+    * add GUI for local ZFS storage
+    * add startall/stopall/migrateall menu buttons  
+    * add multiqueues field to NIC form
+
+  - update to qemu 2.1.3
+
+  - qemu-server updates
+    * shutdown by Qemu Guest Agent if the agent flag is set
+    * snapshot_create: call fsfreeze if agent flag is set
+    * vzdump: use qga freeze in vzdump in snapshot mode
+    * add custom NUMA topology support
+    * serial: allow to pass arbitrary device names
+    * add link_down flag to network config
+    * support additional e1000 variants for VM machines
+    * enable hotplug by default
+    * hotplug config: allow to enable specific features
+    * include memory hotplug patch (experimental)
+
+  - improved hotplug support
+
+  - based on Debian Wheezy 7.8
+
+  - kernel updates
+
+  - countless bug fixes and package updates (for all details 
+    see bugtracker and GIT)
+
+15.09.2014: Proxmox Virtual Environment 3.3
+
+  - improved security features
+    * Firewall support (new package pve-firewall)
+    * Two-Factor Authentication (Yubico and OATH)
+
+  - pve-manager (GUI) updates
+    * new Firewall GUI
+    * noVNC console
+    * openvz: add bridge vlan && firewall options to gui
+    * new Proxmox VE GUI for Mobile devices 
+    * add new 'Pool View'
+    * ZFS storage can now be configured on GUI
+    * glusterfs: new option to specify backup volfile server
+    * add new email_from option to datacenter.cfg
+    * add Persian (Farsi) translation.
+    * improved Spanish translation
+    * update Chinese translation
+    * Countless updates and fixes
+
+  - update to qemu 2.1.0
+    * pci passthrough improvements
+    * hotplug improvements
+    * migration : enable auto-converge capability
+    * add cpu_hotplug (and maxcpus config)
+    * add virtio-net multiqueue support
+    * new option smbios1 to specify SMBIOS type 1 fields
+    * set uuid for newly created machines
+    * support new q35 machine type
+    * add Broadwell cpu model
+    * compile with new libiscsi (1.12.0)
+    * use glusterfs 3.5.2 libraries
+    * support drive option 'discard'
+    * add support for new qemu throttling burst max parameters
+    * add 'vmxnet3', 'lsi53c810', and 'pvscsi' to the list of available network card models
+ 
+  - improved Console support
+    * HTML5 Console for shell, VM and container console (noVNC)
+    * noVNC console is now the deafult
+    * vncterm: new option -notls (for novnc, which use 'wss')
+    * vncterm: updated signature for java applet to avoid warnings 
+
+  - pve-kernel-2.6.32-32-pve: 2.6.32-135
+    * update aacraid, arcmsr, netxtreme2, ixgbe, igb, megaraid_sas and e1000e drivers
+    * update to vzkernel-2.6.32-042stab093.4.src.rpm
+
+  - pve-kernel-3.10.0-4-pve: 3.10.0-17
+    * enable vfio xfga
+    * update arcmsr, netxtreme2, ixgbe, igb, e1000e drivers
+    * update to kernel-3.10.0-123.6.3.el7.src.rpm
+    * allow to use grub-efi-ia32 boot loader
+    * Note: there is still no OpenVZ support with this kernel
+
+  - update ceph packages to 'firefly' (0.80.5)
+    * Note: Please updrade ceph packages first if you run ceph 
+      server on proxmox nodes (see ceph upgrade instructions).
+
+  - update gluster packages to 3.5.2
+
+  - fence-agents-pve: 4.0.10
+    * update to 4.0.10
+    * add fence_ovh and fence_amt
+    * remove baytech, bullpap, cpint, egenera, mcdata, nss_wrapper, 
+      rackswitch, vixel, xcat. Those agents are no longer included in 
+      upstream package.
+    * removed fence_scsi
+    * Note: This incudes updates for fence_ipmilan (fence_ilo3, fence_ilo4, 
+      fence_imm, and fence_idrac), and some parameter names changed (see 
+      'man fence_ipmilan'). Please verify that your fence device still works 
+      if you use HA.
+
+  - based on Debian Wheezy 7.5
+
+  - countless bug fixes and package updates (for all details see bugtracker and GIT)
+
+
+30.04.2014: Proxmox Virtual Environment 3.2 update
+
+  - new installation CD with latest security update
+
+  - update to Debian 7.5.0
+
+  - update to vzkernel-2.6.32-042stab088.4.src.rpm
+
+  - many small improvements and bug fixes 
+
+07.03.2014: Proxmox Virtual Environment 3.2
+
+  - update to vzkernel-2.6.32-042stab084.20.src.rpm
+    * update e1000, igb, ixgbe, netxtreme2, megaraid_sas
+    * include latest ARECA RAID drivers
+    * update Broadcom bnx2/bnx2x drivers to 7.6.62
+    * update aacraid to aacraid-1.2.1-30300.src.rpm
+
+  - update qemu to 1.7.0
+    * add 'pvscsi' to the list of scsi controllers (emulate the VMware
+    PVSCSI device)
+    * add 'lsi53c810' to the list of scsi controllers (supported on some 
+    very old Windows NT versions)
+    * add 'vmxnet3' to the list of available network card models (emulate
+    VMware paravirtualized network card)
+    * add drive option 'discard'
+    * add support for new qemu throttling burst max parameters
+    * improved live backup
+
+  - improved SPICE support
+    * spiceterm
+    * add new console option to datacenter.cfg (java applet vs. spice)
+    * add multi-monitor support 
+    * GUI: use split-button to easily select SPICE or VNC
+
+  - added Open vSwitch support (technology preview)
+
+  - new GUI to manage Ceph server running on PVE nodes (technology preview)
+
+  - storage: new ZFS plugin (technology preview)
+
+  - storage: remove nexenta plugin (ZFS plugin is faster)
+
+  - many small improvements and bug fixes 
+
+21.08.2013: Proxmox Virtual Environment 3.1
+
+  - update to vzkernel-2.6.32-042stab079.5.src.rpm
+    * include Highpoint 2710 RAID driver
+    * update megaraid_sas to 6.600.18.00
+
+  - update lvm2 to 2.02.98
+
+  - experimental code to support spice
+
+  - enable glusterfs storage backend
+
+  - add package update manager to GUI
+    * support to view changelogs for available pve packages
+    * add button to display package versions, to provide same 
+      info as 'pveversion -v' on GUI
+
+  - bug fixes
+
+23.05.2013: Proxmox Virtual Environment 3.0
+
+  - based on Debian 7.0 (Wheezy)
+
+  - new VM clone feature
+
+  - new event driven API server (pveproxy)
+    * completely replace apache2
+    * efficient support for HTTP keep-alive
+
+  - support bootlogd (boot log can be viewed on the GUI)
+
+  - update qemu-kvm to 1.4.1
+
+  - update kernel to vzkernel-2.6.32-042stab076.7.src.rpm
+    * changed default IO scheduler to 'deadline'
+    * updated Intel network drivers for e1000e, igb and ixgbe
+
+  - bug fixes
+
+04.03.2013: Proxmox Virtual Environment 2.3
+
+  - update qemu-kvm to 1.4.0
+
+  - new kvm backup implementation
+
+  - added RDB (ceph) support on GUI 
+
+  - update kernel to vzkernel-2.6.32-042stab072.10.src.rpm
+
+  - extend memory GUI to support ballooning
+
+  - implement auto-ballooning
+
+  - add HD resize feature to expand disks.
+
+  - updated network drivers (bnx2/bnx2x/e1000e/igb/ixgbe)
+
+  - updated debian packages
+
+  - added omping binaries
+
+  - bug fixes
+
+24.10.2012: Proxmox Virtual Environment 2.2
+
+  - update kernel to vzkernel-2.6.32-042stab062.2.src.rpm
+
+  - update qemu-kvm to 1.2.0
+
+  - openvz: update vzctl to 4.0
+
+  - openvz: use real console instead of 'vzctl enter'
+
+  - add live snapshot support (qcow2)
+
+  - added Slovenian translation
+
+  - kvm: new option to select SCSI controller hardware
+
+  - kvm: support up to 32 network devices
+
+  - kvm: support up to 16 virtio devices
+
+  - kvm: add SATA to GUI 
+
+  - updated cluster packages
+
+  - update to latest debian version 6.0.6
+
+  - bug fixes
+
+27.04.2012: Proxmox Virtual Environment 2.1
+
+  - simplify GUI for users without permissions
+
+  - implemented startup/shutdown ordering 
+
+  - improved task logs on node startup/shutdown
+
+  - added Russian, Italian and Turkish translation
+
+  - updated corosync cluster stack to 1.4.3
+
+  - update LVM to 2.02.95 (fixes snapshot problems)
+
+  - bug fixes
+
+29.03.2012: Proxmox Virtual Environment 2.0
+
+  - final 2.0 release 
+
+  - Documentation at http://pve.proxmox.com 
+
+  - all release critical bugs closed
+
+16.02.2012: Proxmox Virtual Environment 2.0 RC 1
+
+  - many fixes and updates, see individual package
+    changelogs for details.
+
+29.11.2011: Proxmox Virtual Environment 2.0 Beta 3
+
+  - do not activate clvmd by default
+
+  - start i18n support
+
+  - many fixes and updates
+
+18.11.2011: Proxmox Virtual Environment 2.0 Beta 2
+
+  - new OpenVZ GUI
+
+  - new Backup/Restore (vzdump)
+
+  - many fixes and updates
+
+30.09.2011: Proxmox Virtual Environment 2.0 Beta 1
+
+  - first V2.0 beta release

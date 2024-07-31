@@ -1,0 +1,21 @@
+#!/bin/sh
+#this is hook scripts to add file into initramfs
+PREREQ=""
+
+prereqs()
+{
+    echo "$PREREQ"
+}
+
+case $1 in
+prereqs)
+    prereqs
+    exit 0
+    ;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+
+mkdir ${DESTDIR}/proc ${DESTDIR}/sys ${DESTDIR}/dev ${DESTDIR}/mnt -p
+copy_exec /.cd-info /
+copy_exec /.pve-cd-id.txt /

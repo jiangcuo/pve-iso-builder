@@ -1,0 +1,25 @@
+Copying and Licenses 
+==================== 
+ 
+The majority of programs on this CD fall under the GNU Affero General Public 
+License (AGPL). This license can be found in the file "COPYING". 
+ 
+We make available the complete source code as required by the
+individual licenses (AGPL or other) of the packages. For some Packages
+the source code is available for download on git.proxmox.com. For
+others, it is shipped directly on the CDs or DVDs.  If you find any
+omissions, please notify us. In such a case, we offer for you to
+receive missing source code at net cost price.
+ 
+ 
+ATTENTION: 
+========== 
+ 
+The distribution and use of software (even if it is free software)
+must honor certain license conditions. The package information
+mentions the respective license and authors. We cannot, however,
+ensure the correctness of this information.  In cases of doubt, refer
+to the original copyright information of the respective programs.
+ 
+Your Proxmox Team 
+ 
