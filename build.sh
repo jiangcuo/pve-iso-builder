@@ -12,22 +12,22 @@ pvemirrors="https://mirrors.ustc.edu.cn/proxmox/debian" #pve mirrors. for arm "h
 # Handling of different architectures
 if [ "$hostarch" == "aarch64" ];then
     target_arch="arm64";
-    grub_prex="arm64"
+    grub_prefix="arm64"
     grub_file="BOOTAA64.EFI"
     grub_pkg="grub-common  grub-efi-arm64-bin grub-efi-arm64-signed shim-signed"
 elif [ "$hostarch" == "x86_64" ];then
     target_arch="amd64"
-    grub_prex="x86_64"
+    grub_prefix="x86_64"
     grub_file="BOOTX64.EFI"
     grub_pkg="grub-common grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed shim-signed"
 elif [ "$hostarch" == "loongarch64" ];then
     target_arch="loong64"
-    grub_prex="loongarch64"
+    grub_prefix="loongarch64"
     grub_file="BOOTLOONGARCH64.EFI" 
     grub_pkg="grub-common  grub-efi-loongarch64-bin"
 elif [ "$hostarch" == "riscv64" ];then
     target_arch="riscv64"
-    grub_prex="riscv64"
+    grub_prefix="riscv64"
     grub_file="BOOTRISCV64.EFI"  
     grub_pkg="grub-common  grub-efi-riscv64-bin"
 fi
@@ -105,6 +105,27 @@ debconfig_write(){
 	chroot $targetdir/overlay/mount/ rm /tmp/debconfig.txt
 }
 
+fix_console_setup(){
+cat > $targetdir/overlay/mount/etc/default/console-setup << 'EOF'
+# CONFIGURATION FILE FOR SETUPCON
+
+# Consult the console-setup(5) manual page.
+
+ACTIVE_CONSOLES="/dev/tty[1-6]"
+
+CHARMAP="UTF-8"
+
+CODESET="Lat15"
+FONTFACE="Fixed"
+FONTSIZE="8x16"
+
+VIDEOMODE=
+
+# The following is an example how to use a braille font
+# FONT='lat9w-08.psf.gz brl-8x8.psf'
+EOF
+}
+
 # Create pve-installer.squashfs
 overlayfs(){
     if [ ! -f "$targetdir/.overlay.lock" ];then
@@ -125,6 +146,7 @@ overlayfs(){
         debconfig_set
         debconfig_write
         LC_ALL=C DEBIAN_FRONTEND=noninteractive chroot $targetdir/overlay/mount apt -o DPkg::Options::="--force-confnew" install $grub_pkg openssh-client locales locales-all traceroute squashfs-tools spice-vdagent pci.ids pciutils gettext-base fonts-liberation eject ethtool efibootmgr dmeventd dnsutils lvm2 libstring-shellquote-perl console-setup wget curl vim iputils-* locales busybox initramfs-tools xorg openbox proxmox-installer pve-firmware zfsutils-linux zfs-zed spl btrfs-progs gdisk -y || errlog "install pveinstaller failed"
+        fix_console_setup
         mkdir $targetdir/overlay/mount/usr/lib/modules/
         cp -r $targetdir/rootfs/lib/modules/* $targetdir/overlay/mount/usr/lib/modules/
         chroot $targetdir/overlay/mount/ apt clean
@@ -218,23 +240,31 @@ create_pkg(){
     rm -rf $targetdir/rootfs/var/cache/apt/archives/
     chroot $targetdir/rootfs apt update ||errlog "do apt update failed"
 
-    chroot $targetdir/rootfs apt --download-only install -y proxmox-ve postfix squashfs-tools traceroute net-tools pci.ids pciutils efibootmgr xfsprogs fonts-liberation dnsutils $extra_pkg $grub_pkg gettext-base sosreport ethtool dmeventd eject chrony locales locales-all systemd rsyslog ifupdown2 ksmtuned console-setup ||errlog "download proxmox-ve package failed"
+    chroot $targetdir/rootfs apt --download-only install -y proxmox-ve postfix squashfs-tools traceroute net-tools pci.ids pciutils efibootmgr xfsprogs fonts-liberation dnsutils $extra_pkg $grub_pkg gettext-base sosreport ethtool dmeventd eject chrony locales locales-all systemd rsyslog ifupdown2 ksmtuned ||errlog "download proxmox-ve package failed"
+    if [ $target_arch == "arm64" ];then
+        chroot $targetdir/rootfs apt --download-only install -y  pve-kernel-6.6-openeuler pve-kernel-6.1-generic ||errlog "kernel installed failed"
+    else
+        chroot $targetdir/rootfs apt --download-only install -y  pve-kernel-6.6-openeuler ||errlog "kernel installed failed"
+    fi
+    mkdir $targetdir/iso/proxmox/packages/ -p
     cp -r $targetdir/rootfs/var/cache/apt/archives/*.deb $targetdir/iso/proxmox/packages/  ||errlog "do copy pkg failed"
     touch $targetdir/.package.lock
-    fi
+    fi 
     
     if [ ! -f "$targetdir/.kernel.lock" ];then
         if [ $target_arch == "amd64" ];then
             chroot $targetdir/rootfs apt install pve-firmware proxmox-kernel-6.8 -y ||errlog "kernel installed failed"
         else
-            chroot $targetdir/rootfs apt install pve-firmware pve-kernel-6.6.0-openeuler -y ||errlog "kernel installed failed"
+            chroot $targetdir/rootfs apt install pve-firmware pve-kernel-6.6-openeuler pve-kernel-6.1-generic -y ||errlog "kernel installed failed"
         fi
             touch "$targetdir/.kernel.lock" 
     fi
     initramfs_hook
     chroot  $targetdir/rootfs/ update-initramfs -k all -u
-    cp $targetdir/rootfs/boot/initrd.img-* $targetdir/iso/boot/initrd.img  ||errlog "do copy initrd failed"
-    cp $targetdir/rootfs/boot/vmlinuz-*  $targetdir/iso/boot/linux26  ||errlog "do copy kernel failed"
+    cp $targetdir/rootfs/boot/initrd.img-*-openeuler $targetdir/iso/boot/initrd.img  ||errlog "do copy initrd failed"
+    cp $targetdir/rootfs/boot/vmlinuz-*-openeuler  $targetdir/iso/boot/linux26  ||errlog "do copy kernel failed"
+    cp $targetdir/rootfs/boot/initrd.img-*-generic $targetdir/iso/boot/initrd.img-generic  ||errlog "do copy initrd failed"
+    cp $targetdir/rootfs/boot/vmlinuz-*-generic  $targetdir/iso/boot/linux26-generic  ||errlog "do copy kernel failed"
     umount_proc 
 }
 
@@ -312,7 +342,7 @@ if [ ! -f "$targetdir/.grub.lock" ];then
     mkdir $targetdir/iso/EFI/BOOT/ -p
     mkdir $targetdir/iso/boot/grub -p
     echo "do grub install"
-    grub-mkimage -o $targetdir/iso/EFI/BOOT/$grub_file -O $grub_prex-efi -p /EFI/BOOT/ \
+    grub-mkimage -o $targetdir/iso/EFI/BOOT/$grub_file -O $grub_prefix-efi -p /EFI/BOOT/ \
 	boot linux chain normal configfile \
 	part_gpt part_msdos fat iso9660 udf \
 	test true keystatus loopback regexp probe \
