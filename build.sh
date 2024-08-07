@@ -241,11 +241,15 @@ create_pkg(){
     chroot $targetdir/rootfs apt update ||errlog "do apt update failed"
 
     chroot $targetdir/rootfs apt --download-only install -y proxmox-ve postfix squashfs-tools traceroute net-tools pci.ids pciutils efibootmgr xfsprogs fonts-liberation dnsutils $extra_pkg $grub_pkg gettext-base sosreport ethtool dmeventd eject chrony locales locales-all systemd rsyslog ifupdown2 ksmtuned ||errlog "download proxmox-ve package failed"
+    
     if [ $target_arch == "arm64" ];then
-        chroot $targetdir/rootfs apt --download-only install -y  pve-kernel-6.6-openeuler pve-kernel-6.1-generic ||errlog "kernel installed failed"
-    else
+        chroot $targetdir/rootfs apt --download-only install -y  pve-kernel-6.1-generic ||errlog "kernel installed failed"
+    fi
+
+    if [ $target_arch != "amd64" ];then
         chroot $targetdir/rootfs apt --download-only install -y  pve-kernel-6.6-openeuler ||errlog "kernel installed failed"
     fi
+    
     mkdir $targetdir/iso/proxmox/packages/ -p
     cp -r $targetdir/rootfs/var/cache/apt/archives/*.deb $targetdir/iso/proxmox/packages/  ||errlog "do copy pkg failed"
     touch $targetdir/.package.lock
@@ -254,17 +258,30 @@ create_pkg(){
     if [ ! -f "$targetdir/.kernel.lock" ];then
         if [ $target_arch == "amd64" ];then
             chroot $targetdir/rootfs apt install pve-firmware proxmox-kernel-6.8 -y ||errlog "kernel installed failed"
-        else
+        elif [ $target_arch == "arm64" ];then
             chroot $targetdir/rootfs apt install pve-firmware pve-kernel-6.6-openeuler pve-kernel-6.1-generic -y ||errlog "kernel installed failed"
+        else
+            chroot $targetdir/rootfs apt install pve-firmware pve-kernel-6.6-openeuler -y ||errlog "kernel installed failed"
         fi
             touch "$targetdir/.kernel.lock" 
     fi
     initramfs_hook
     chroot  $targetdir/rootfs/ update-initramfs -k all -u
-    cp $targetdir/rootfs/boot/initrd.img-*-openeuler $targetdir/iso/boot/initrd.img  ||errlog "do copy initrd failed"
-    cp $targetdir/rootfs/boot/vmlinuz-*-openeuler  $targetdir/iso/boot/linux26  ||errlog "do copy kernel failed"
-    cp $targetdir/rootfs/boot/initrd.img-*-generic $targetdir/iso/boot/initrd.img-generic  ||errlog "do copy initrd failed"
-    cp $targetdir/rootfs/boot/vmlinuz-*-generic  $targetdir/iso/boot/linux26-generic  ||errlog "do copy kernel failed"
+
+    if [ $target_arch != "amd64" ];then
+        cp $targetdir/rootfs/boot/initrd.img-*-openeuler $targetdir/iso/boot/initrd.img  ||errlog "do copy initrd failed"
+        cp $targetdir/rootfs/boot/vmlinuz-*-openeuler  $targetdir/iso/boot/linux26  ||errlog "do copy kernel failed"
+    fi
+
+    if [ $target_arch == "arm64"  ];then
+        cp $targetdir/rootfs/boot/initrd.img-*-generic $targetdir/iso/boot/initrd.img-generic  ||errlog "do copy initrd failed"
+        cp $targetdir/rootfs/boot/vmlinuz-*-generic  $targetdir/iso/boot/linux26-generic  ||errlog "do copy kernel failed"
+    fi
+    
+    if [ $target_arch == "amd64" ];then
+        cp $targetdir/rootfs/boot/initrd.img* $targetdir/iso/boot/initrd.img  ||errlog "do copy initrd failed"
+        cp $targetdir/rootfs/boot/vmlinuz*  $targetdir/iso/boot/linux26  ||errlog "do copy kernel failed"
+    fi
     umount_proc 
 }
 
