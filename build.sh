@@ -14,17 +14,17 @@ if [ "$hostarch" == "aarch64" ];then
     target_arch="arm64";
     grub_prefix="arm64"
     grub_file="BOOTAA64.EFI"
-    grub_pkg="grub-common  grub-efi-arm64-bin grub-efi-arm64-signed shim-signed"
+    grub_pkg="grub-common  grub-efi-arm64-bin systemd-boot grub-efi-arm64-signed shim-signed"
 elif [ "$hostarch" == "x86_64" ];then
     target_arch="amd64"
     grub_prefix="x86_64"
     grub_file="BOOTX64.EFI"
-    grub_pkg="grub-common grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed shim-signed"
+    grub_pkg="grub-common grub-pc-bin grub-efi-amd64-bin systemd-boot grub-efi-amd64-signed shim-signed"
 elif [ "$hostarch" == "loongarch64" ];then
     target_arch="loong64"
     grub_prefix="loongarch64"
     grub_file="BOOTLOONGARCH64.EFI" 
-    grub_pkg="grub-common  grub-efi-loongarch64-bin"
+    grub_pkg="grub-common  grub-efi-loong64-bin"
 elif [ "$hostarch" == "riscv64" ];then
     target_arch="riscv64"
     grub_prefix="riscv64"
