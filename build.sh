@@ -92,7 +92,7 @@ initramfs_hook(){
     cp $script_dir/pve_init_hook $targetdir/rootfs/usr/share/initramfs-tools/hooks/ || errlog "copy pve_init_hook   failed" 
     echo "virtio-gpu" >$targetdir/rootfs/etc/initramfs-tools/modules
     echo "drm" >>$targetdir/rootfs/etc/initramfs-tools/modules
-    echo "overlay" >$targetdir/rootfs/etc/initramfs-tools/modules
+    echo "overlay" >>$targetdir/rootfs/etc/initramfs-tools/modules
     chmod +x $targetdir/rootfs/usr/share/initramfs-tools/hooks/pve_init_hook 
 }
 
