@@ -243,7 +243,7 @@ create_pkg(){
     chroot $targetdir/rootfs apt --download-only install -y proxmox-ve postfix squashfs-tools traceroute net-tools pci.ids pciutils efibootmgr xfsprogs fonts-liberation dnsutils $extra_pkg $grub_pkg gettext-base sosreport ethtool dmeventd eject chrony locales locales-all systemd rsyslog ifupdown2 ksmtuned ||errlog "download proxmox-ve package failed"
     
     if [ $target_arch == "arm64" ];then
-        chroot $targetdir/rootfs apt --download-only install -y  pve-kernel-6.1-generic ||errlog "kernel installed failed"
+        chroot $targetdir/rootfs apt --download-only install -y  pve-kernel-6.1-generic pve-kernel-6.6-phytium||errlog "kernel installed failed"
     fi
 
     if [ $target_arch != "amd64" ];then
@@ -259,7 +259,7 @@ create_pkg(){
         if [ $target_arch == "amd64" ];then
             chroot $targetdir/rootfs apt install pve-firmware proxmox-kernel-6.8 -y ||errlog "kernel installed failed"
         elif [ $target_arch == "arm64" ];then
-            chroot $targetdir/rootfs apt install pve-firmware pve-kernel-6.6-openeuler pve-kernel-6.1-generic -y ||errlog "kernel installed failed"
+            chroot $targetdir/rootfs apt install pve-firmware pve-kernel-6.6-openeuler pve-kernel-6.1-generic pve-kernel-6.6-phytium -y ||errlog "kernel installed failed"
         else
             chroot $targetdir/rootfs apt install pve-firmware pve-kernel-6.6-openeuler -y ||errlog "kernel installed failed"
         fi
@@ -276,6 +276,8 @@ create_pkg(){
     if [ $target_arch == "arm64"  ];then
         cp $targetdir/rootfs/boot/initrd.img-*-generic $targetdir/iso/boot/initrd.img-generic  ||errlog "do copy initrd failed"
         cp $targetdir/rootfs/boot/vmlinuz-*-generic  $targetdir/iso/boot/linux26-generic  ||errlog "do copy kernel failed"
+        cp $targetdir/rootfs/boot/initrd.img-*-phytium $targetdir/iso/boot/initrd.img-phytium  ||errlog "do copy initrd failed"
+        cp $targetdir/rootfs/boot/vmlinuz-*-phytium  $targetdir/iso/boot/linux26-phytium  ||errlog "do copy kernel failed"
     fi
     
     if [ $target_arch == "amd64" ];then
