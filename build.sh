@@ -1,35 +1,56 @@
 #!/bin/bash
 #proxmox arm64 iso builder
-extra_pkg=""  #if you want install other package
+script_path=$(readlink -f "\$0")
+script_dir=$(dirname "$script_path")
 
+extra_pkg="ceph-common ceph-fuse"  #if you want install other package
 hostarch=`arch`     # This scripts only allow the same arch build.
 codename="bookworm"  # proxmox version. bookworm->pve8 ,bullseye->pve7
 targetdir="/tmp/targetdir" # tmpdir
 mirrors="https://mirrors.ustc.edu.cn" #debian mirror
-pvemirrors="https://mirrors.ustc.edu.cn/proxmox/debian" #pve mirrors. for arm "https://mirrors.apqa.cn/proxmox/debian/"
+pvemirrors="https://mirrors.ustc.edu.cn/proxmox/debian" #pve mirrors.
+portmirrors="https://mirrors.lierfang.com/proxmox/debian" #port mirrors
 
+# iso info
+source $script_dir/.cd-info
+
+# add modules to initramfs
+modules="drm overlay uas hibmc-drm dw_drm_dsi kirin_drm amdgpu nouveau ast radeon virtio-gpu mgag200"
+
+main_kernel="pve-kernel-6.1-generic" # this is port mian_kernel. We can override this env on Handling envets
+extra_kernel="pve-kernel-5.10-openeuler" # this is port extra_kernel. We can override this env on Handling envets
 
 # Handling of different architectures
 if [ "$hostarch" == "aarch64" ];then
     target_arch="arm64";
     grub_prefix="arm64"
     grub_file="BOOTAA64.EFI"
-    grub_pkg="grub-common  grub-efi-arm64-bin systemd-boot grub-efi-arm64-signed shim-signed grub-efi-arm64 grub2-common"
+    grub_pkg="grub-common grub-efi-arm64-bin systemd-boot grub-efi-arm64-signed shim-signed grub-efi-arm64 grub2-common"
 elif [ "$hostarch" == "x86_64" ];then
     target_arch="amd64"
     grub_prefix="x86_64"
     grub_file="BOOTX64.EFI"
     grub_pkg="grub-common grub-pc-bin grub-efi-amd64-bin systemd-boot grub-efi-amd64-signed shim-signed  grub-efi-amd64 grub2-common"
+    main_kernel="proxmox-kernel-6.8"
 elif [ "$hostarch" == "loongarch64" ];then
     target_arch="loong64"
     grub_prefix="loongarch64"
-    grub_file="BOOTLOONGARCH64.EFI" 
+    grub_file="BOOTLOONGARCH64.EFI"
     grub_pkg="grub-common  grub-efi-loong64-bin grub-efi-loong64 grub2-common"
+    codename="sid"
+    portmirrors="https://mirrors.lierfang.com/proxmox/debian"
+    if [ "$PRODUCT" == "pbs" ];then
+        main_kernel="pve-kernel-6.12-4k-pve"  #pbs need 4k kernel
+    else
+	main_kernel="pve-kernel-6.12-pve"     #for loongarch kernel 6.12  works fine
+    fi
+    extra_kernel=""
 elif [ "$hostarch" == "riscv64" ];then
     target_arch="riscv64"
     grub_prefix="riscv64"
-    grub_file="BOOTRISCV64.EFI"  
+    grub_file="BOOTRISCV64.EFI"
     grub_pkg="grub-common  grub-efi-riscv64-bin grub-efi-riscv64 grub2-common"
+    codename="sid"
 fi
 
 
@@ -47,7 +68,7 @@ isofs(){
     rm $targetdir/iso/ -rf
     mkdir $targetdir/iso/boot/ -p
     mkdir $targetdir/iso/{.installer,.base,.installer-mp,.workdir} -p
-    cp $script_dir/Release.txt $script_dir/COPYING $script_dir/COPYRIGHT $script_dir/EULA   $targetdir/iso/  ||errlog "do copy elua to iso dir failed"
+    cp $script_dir/.cd-info $script_dir/Release.txt $script_dir/COPYING $script_dir/COPYRIGHT $script_dir/EULA   $targetdir/iso/  ||errlog "do copy elua to iso dir failed"
     cp -r $script_dir/proxmox $targetdir/iso/  ||errlog "do proxmox dir to iso dir failed"
     echo "" >  $targetdir/iso/auto-installer-capable
     touch  $targetdir/.isofs.lock
@@ -56,14 +77,6 @@ isofs(){
 
 # Crate Proxmox VE iso info
 isoinfo(){
-cat > $targetdir/iso/.cd-info << 'EOF'
-RELEASE='8.2'
-ISORELEASE='1'
-ISONAME='proxmox-ve'
-PRODUCT='pve'
-PRODUCTLONG='Proxmox VE'
-EOF
-
 echo $pveuuid > $targetdir/iso/.pve-cd-id.txt
 }
 
@@ -80,20 +93,20 @@ umount_proc(){
     umount   $targetdir/rootfs/sys
     umount   $targetdir/rootfs/dev
     umount   $targetdir/dev/rootfs/pts
-    umount -l $targetdir/overlay/mount  
-    umount -l $targetdir/overlay/base  
+    umount -l $targetdir/overlay/mount
+    umount -l $targetdir/overlay/base
 }
 
 # Create proxmox installer initrd hook
 initramfs_hook(){
-    cp $targetdir/iso/.pve-cd-id.txt $targetdir/rootfs/ || errlog "copy .pve-cd-id.txt  failed" 
-    cp $targetdir/iso/.cd-info $targetdir/rootfs/ || errlog "copy .cd-info   failed" 
-    cp $script_dir/init $targetdir/rootfs/usr/share/initramfs-tools || errlog "copy initpve   failed" 
-    cp $script_dir/pve_init_hook $targetdir/rootfs/usr/share/initramfs-tools/hooks/ || errlog "copy pve_init_hook   failed" 
-    echo "virtio-gpu" >$targetdir/rootfs/etc/initramfs-tools/modules
-    echo "drm" >>$targetdir/rootfs/etc/initramfs-tools/modules
-    echo "overlay" >>$targetdir/rootfs/etc/initramfs-tools/modules
-    chmod +x $targetdir/rootfs/usr/share/initramfs-tools/hooks/pve_init_hook 
+    cp $targetdir/iso/.pve-cd-id.txt $targetdir/rootfs/ || errlog "copy .pve-cd-id.txt  failed"
+    cp $targetdir/iso/.cd-info $targetdir/rootfs/ || errlog "copy .cd-info   failed"
+    cp $script_dir/init $targetdir/rootfs/usr/share/initramfs-tools || errlog "copy initpve   failed"
+    cp $script_dir/pve_init_hook $targetdir/rootfs/usr/share/initramfs-tools/hooks/ || errlog "copy pve_init_hook   failed"
+    for module in $modules; do
+    	echo "$module" >> $targetdir/rootfs/etc/initramfs-tools/modules
+    done
+    chmod +x $targetdir/rootfs/usr/share/initramfs-tools/hooks/pve_init_hook
 }
 
 debconfig_set(){
@@ -133,34 +146,33 @@ overlayfs(){
         mkdir $targetdir/overlay/{base,upper,work,mount} -p
         mount -t squashfs -o ro $targetdir/pve-base.squashfs  $targetdir/overlay/base || errlog "mount pve-base.squashfs filesystem failed"
         mount -t overlay -o lowerdir=$targetdir/overlay/base,upperdir=$targetdir/overlay/upper,workdir=$targetdir/overlay/work  none $targetdir/overlay/mount || errlog "mount squashfs filesystem failed"
-        
-        if [ $target_arch == "amd64" ];then
+
+        if [ "$target_arch" == "amd64" ];then
             curl -L $pvemirrors/proxmox-release-$codename.gpg    -o $targetdir/overlay/mount/etc/apt/trusted.gpg.d/proxmox-release-$codename.gpg
-            echo "deb $pvemirrors/pve $codename pve-no-subscription " > $targetdir/overlay/mount/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
+            echo "deb $pvemirrors/$PRODUCT $codename $PRODUCT-no-subscription " > $targetdir/overlay/mount/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
         else
-            curl -L $pvemirrors/pveport.gpg -o $targetdir/overlay/mount/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
-            echo "deb $pvemirrors/pve $codename port" > $targetdir/overlay/mount/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
-            echo "deb $pvemirrors/kernel sid port" > $targetdir/overlay/mount/etc/apt/sources.list.d/pveportkernel.list  ||errlog "create apt pveportkernel mirror failed"
-        fi 
-        chroot $targetdir/overlay/mount apt update || errlog "apt update failed" 
+            curl -L $portmirrors/pveport.gpg -o $targetdir/overlay/mount/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
+            echo "deb $portmirrors/$PRODUCT $codename port" > $targetdir/overlay/mount/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
+        fi
+        chroot $targetdir/overlay/mount apt update || errlog "apt update failed"
         debconfig_set
         debconfig_write
-        LC_ALL=C DEBIAN_FRONTEND=noninteractive chroot $targetdir/overlay/mount apt -o DPkg::Options::="--force-confnew" install $grub_pkg openssh-client locales locales-all traceroute squashfs-tools spice-vdagent pci.ids pciutils gettext-base fonts-liberation eject ethtool efibootmgr dmeventd dnsutils lvm2 libstring-shellquote-perl console-setup wget curl vim iputils-* locales busybox initramfs-tools xorg openbox proxmox-installer pve-firmware zfsutils-linux zfs-zed spl btrfs-progs gdisk -y || errlog "install pveinstaller failed"
+        LC_ALL=C DEBIAN_FRONTEND=noninteractive chroot $targetdir/overlay/mount apt -o DPkg::Options::="--force-confnew" install $grub_pkg openssh-client locales locales-all traceroute squashfs-tools spice-vdagent pci.ids pciutils gettext-base fonts-liberation eject ethtool efibootmgr dmeventd dnsutils lvm2 libstring-shellquote-perl console-setup wget curl vim iputils-* locales busybox initramfs-tools xorg openbox proxmox-installer pve-firmware zfsutils-linux zfs-zed spl btrfs-progs gdisk bash-completion zfs-initramfs dosfstools -y || errlog "install pveinstaller failed"
         fix_console_setup
         mkdir $targetdir/overlay/mount/usr/lib/modules/
         cp -r $targetdir/rootfs/lib/modules/* $targetdir/overlay/mount/usr/lib/modules/
         chroot $targetdir/overlay/mount/ apt clean
         rm -rf $targetdir/overlay/mount/var/cache/apt/archives/
-        umount $targetdir/overlay/mount   || errlog "umount overlayfs failed" 
-        umount $targetdir/overlay/base  || errlog "umount pvebase overlayfs failed" 
+        umount $targetdir/overlay/mount   || errlog "umount overlayfs failed"
+        umount $targetdir/overlay/base  || errlog "umount pvebase overlayfs failed"
         touch $targetdir/.overlay.lock
     fi
 
     rm -rf $targetdir/overlay/upper/tmp/  $targetdir/pve-installer.squashfs
-    cp $targetdir/iso/.pve-cd-id.txt $targetdir/overlay/upper/ || errlog "copy .pve-cd-id.txt  failed" 
-    cp $targetdir/iso/.cd-info $targetdir/overlay/upper/ || errlog "copy .cd-info  failed" 
+    cp $targetdir/iso/.pve-cd-id.txt $targetdir/overlay/upper/ || errlog "copy .pve-cd-id.txt  failed"
+    cp $targetdir/iso/.cd-info $targetdir/overlay/upper/ || errlog "copy .cd-info  failed"
     mkdir  $targetdir/overlay/upper/cdrom -p
-    mksquashfs $targetdir/overlay/upper/ $targetdir/pve-installer.squashfs || errlog "create pve-installer.squashfs failed" 
+    mksquashfs $targetdir/overlay/upper/ $targetdir/pve-installer.squashfs || errlog "create pve-installer.squashfs failed"
     touch $targetdir/.pve-installer.lock
 }
 
@@ -211,14 +223,21 @@ env_test(){
         errlog "This script must be run as root."
     fi
     test -f "/usr/sbin/debootstrap" || errlog "debootstrap not found, use 'apt install debootstrap' to install"
-    test -f "/usr/bin/mksquashfs" || errlog "debootstrap not found, use 'apt install squashfs-tools' to install"
-    test -f "/usr/bin/xorriso" || errlog "debootstrap not found, use 'apt install xorriso' to install"
+    test -f "/usr/bin/mksquashfs" || errlog "squasfs-tools not found, use 'apt install squashfs-tools' to install"
+    test -f "/usr/bin/xorriso" || errlog "xorriso not found, use 'apt install xorriso' to install"
 }
 
 # Build pve-base.squashfs
 buildroot(){
     if [ ! -f "$targetdir/pve-base.squashfs" ];then
-    debootstrap --arch=$target_arch $codename $targetdir/rootfs $mirrors/debian || errlog "debootstrap failed"
+	if [  "$hostarch" == "loongarch64" ];then
+		debootstrap --arch=$target_arch  --include=debian-ports-archive-keyring --exclude="exim4,exim4-base,usr-is-merged" --include="usrmerge,perl" --no-check-gpg $codename $targetdir/rootfs https://mirrors.lierfang.com/debian-ports/debian || errlog "debootstrap failed"
+		chroot $targetdir/rootfs apt install usr-is-merged -y
+		echo 'APT { Get { AllowUnauthenticated "1"; }; };' > $targetdir/rootfs/etc/apt/apt.conf.d/99allow_unauth
+		chroot $targetdir/rootfs apt clean
+	else
+		debootstrap --arch=$target_arch $codename $targetdir/rootfs $mirrors/debian || errlog "debootstrap failed"
+	fi
     mksquashfs $targetdir/rootfs $targetdir/pve-base.squashfs
     fi
 }
@@ -228,63 +247,81 @@ buildroot(){
 create_pkg(){
     mount_proc
     if [ ! -f  "$targetdir/.package.lock" ];then
-        if [ $target_arch == "amd64" ];then
+        if [ "$target_arch" == "amd64" ];then
             curl -L $pvemirrors/proxmox-release-$codename.gpg    -o $targetdir/rootfs/etc/apt/trusted.gpg.d/proxmox-release-$codename.gpg
-            echo "deb $pvemirrors/pve $codename pve-no-subscription " > $targetdir/rootfs/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
+            echo "deb $pvemirrors/$PRODUCT $codename $PRODUCT-no-subscription " > $targetdir/rootfs/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
         else
-            curl -L $pvemirrors/pveport.gpg -o $targetdir/rootfs/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
-            echo "deb $pvemirrors/pve $codename port" > $targetdir/rootfs/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
-            echo "deb $pvemirrors/kernel sid port" > $targetdir/rootfs/etc/apt/sources.list.d/pveportkernel.list  ||errlog "create apt pveportkernel mirror failed"
+            curl -L $portmirrors/pveport.gpg -o $targetdir/rootfs/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
+            echo "deb $portmirrors/$PRODUCT $codename port pvetest" > $targetdir/rootfs/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
         fi 
     chroot $targetdir/rootfs apt clean
     rm -rf $targetdir/rootfs/var/cache/apt/archives/
     chroot $targetdir/rootfs apt update ||errlog "do apt update failed"
 
-    chroot $targetdir/rootfs apt --download-only install -y proxmox-ve postfix squashfs-tools traceroute net-tools pci.ids pciutils efibootmgr xfsprogs fonts-liberation dnsutils $extra_pkg $grub_pkg gettext-base sosreport ethtool dmeventd eject chrony locales locales-all systemd rsyslog ifupdown2 ksmtuned ||errlog "download proxmox-ve package failed"
-    
-    if [ $target_arch == "arm64" ];then
-        chroot $targetdir/rootfs apt --download-only install -y  pve-kernel-6.1-generic pve-kernel-6.6-phytium||errlog "kernel installed failed"
+    if [ "$PRODUCT" == "pve" ];then
+	main_pkg="proxmox-ve"
+    else
+	main_pkg="proxmox-backup-server"
+    fi
+    chroot $targetdir/rootfs apt --download-only install -y  $main_pkg postfix squashfs-tools traceroute net-tools pci.ids pciutils efibootmgr xfsprogs fonts-liberation dnsutils $extra_pkg $grub_pkg gettext-base sosreport ethtool dmeventd eject chrony locales locales-all systemd rsyslog ifupdown2 ksmtuned zfsutils-linux zfs-zed spl btrfs-progs gdisk bash-completion zfs-initramfs dosfstools||errlog "download proxmox-ve package failed"
+
+    if [ ! -z "$extra_kernel" ] && [ "$PRODUCT" != "pbs" ] ;then
+	if [ "$target_arch" == "arm64"  ]  || [ "$target_arch" == "loong64"  ] ;then
+        	chroot $targetdir/rootfs apt --download-only install -y  $extra_kernel ||errlog "kernel installed failed"
+    	fi
     fi
 
-    if [ $target_arch != "amd64" ];then
-        chroot $targetdir/rootfs apt --download-only install -y  pve-kernel-6.6-openeuler ||errlog "kernel installed failed"
+    if [ "$target_arch" != "amd64" ];then
+        chroot $targetdir/rootfs apt --download-only install -y $main_kernel  ||errlog "kernel installed failed"
     fi
-    
+
     mkdir $targetdir/iso/proxmox/packages/ -p
     cp -r $targetdir/rootfs/var/cache/apt/archives/*.deb $targetdir/iso/proxmox/packages/  ||errlog "do copy pkg failed"
     touch $targetdir/.package.lock
-    fi 
-    
-    if [ ! -f "$targetdir/.kernel.lock" ];then
-        if [ $target_arch == "amd64" ];then
-            chroot $targetdir/rootfs apt install pve-firmware proxmox-kernel-6.8 -y ||errlog "kernel installed failed"
-        elif [ $target_arch == "arm64" ];then
-            chroot $targetdir/rootfs apt install pve-firmware pve-kernel-6.6-openeuler pve-kernel-6.1-generic pve-kernel-6.6-phytium -y ||errlog "kernel installed failed"
-        else
-            chroot $targetdir/rootfs apt install pve-firmware pve-kernel-6.6-openeuler -y ||errlog "kernel installed failed"
+    fi
+
+    if [ ! -f "$targetdir/.mainkernel.lock" ];then
+	    initramfs_hook
+	    chroot $targetdir/rootfs apt install pve-firmware $main_kernel -y ||errlog "kernel installed failed"
+	    echo "copy main kernel"
+	    cp $targetdir/rootfs/boot/initrd.img-* $targetdir/iso/boot/initrd.img  ||errlog "do copy initrd failed"
+	    cp $targetdir/rootfs/boot/vmlinuz-*  $targetdir/iso/boot/linux26  ||errlog "do copy kernel failed"
+	    touch $targetdir/.mainkernel.lock
+    fi
+
+
+    if [ ! -z "$extra_kernel"  ] && [ "$target_arch" != "amd64"  ] ;then
+
+	chroot $targetdir/rootfs apt install $extra_kernel -y ||errlog "Extra kernel installed failed"
+
+        if [[ "$extra_kernel" =~ "openeuler" ]];then
+            cp $targetdir/rootfs/boot/initrd.img-*-openeuler $targetdir/iso/boot/initrd.img-openeuler  ||errlog "do copy initrd failed"
+            cp $targetdir/rootfs/boot/vmlinuz-*-openeuler  $targetdir/iso/boot/linux26-openeuler  ||errlog "do copy kernel failed"
         fi
-            touch "$targetdir/.kernel.lock" 
-    fi
-    initramfs_hook
-    chroot  $targetdir/rootfs/ update-initramfs -k all -u
 
-    if [ $target_arch != "amd64" ];then
-        cp $targetdir/rootfs/boot/initrd.img-*-openeuler $targetdir/iso/boot/initrd.img  ||errlog "do copy initrd failed"
-        cp $targetdir/rootfs/boot/vmlinuz-*-openeuler  $targetdir/iso/boot/linux26  ||errlog "do copy kernel failed"
+        if [[ "$extra_kernel" =~ -pve ]]; then
+                cp $targetdir/rootfs/boot/initrd.img-*-pve $targetdir/iso/boot/initrd.img-pve  ||errlog "do copy initrd failed"
+                cp $targetdir/rootfs/boot/vmlinuz-*-pve  $targetdir/iso/boot/linux26-pve  ||errlog "do copy kernel failed"
+        fi
+
+        if [[ "$extra_kernel" =~ -generic ]]; then
+                cp $targetdir/rootfs/boot/initrd.img-*-generic $targetdir/iso/boot/initrd.img-generic  ||errlog "do copy initrd failed"
+                cp $targetdir/rootfs/boot/vmlinuz-*-generic  $targetdir/iso/boot/linux26-generic  ||errlog "do copy kernel failed"
+        fi
+
+        if [[ "$extra_kernel" =~ phytium ]]; then
+                cp $targetdir/rootfs/boot/initrd.img-*-phytium $targetdir/iso/boot/initrd.img-phytium  ||errlog "do copy initrd failed"
+                cp $targetdir/rootfs/boot/vmlinuz-*-phytium  $targetdir/iso/boot/linux26-phytium  ||errlog "do copy kernel failed"
+        fi
     fi
 
-    if [ $target_arch == "arm64"  ];then
-        cp $targetdir/rootfs/boot/initrd.img-*-generic $targetdir/iso/boot/initrd.img-generic  ||errlog "do copy initrd failed"
-        cp $targetdir/rootfs/boot/vmlinuz-*-generic  $targetdir/iso/boot/linux26-generic  ||errlog "do copy kernel failed"
-        cp $targetdir/rootfs/boot/initrd.img-*-phytium $targetdir/iso/boot/initrd.img-phytium  ||errlog "do copy initrd failed"
-        cp $targetdir/rootfs/boot/vmlinuz-*-phytium  $targetdir/iso/boot/linux26-phytium  ||errlog "do copy kernel failed"
-    fi
-    
-    if [ $target_arch == "amd64" ];then
+    if [ "$target_arch" == "amd64" ];then
+	echo "copy x86_64 init"
         cp $targetdir/rootfs/boot/initrd.img* $targetdir/iso/boot/initrd.img  ||errlog "do copy initrd failed"
         cp $targetdir/rootfs/boot/vmlinuz*  $targetdir/iso/boot/linux26  ||errlog "do copy kernel failed"
     fi
-    umount_proc 
+
+    umount_proc
 }
 
 # Build iso for !amd64
@@ -294,7 +331,7 @@ build_iso(){
     cd $targetdir/iso/
     xorriso -as mkisofs -r  -V 'PVE' \
     --modification-date=$isodate2 \
-    -o $targetdir/proxmox-ve-$target_arch-$isodate2.iso \
+    -o $targetdir/$ISONAME-$RELEASE-$ISORELEASE-$target_arch-$isodate2.iso \
     -R -cache-inodes \
     -iso-level 3 \
     -e boot/grub/efi.img \
@@ -316,7 +353,7 @@ build_amd64_iso(){
     cp $script_dir/eltorito.img $targetdir/iso/boot  ||errlog "do copy eltorito failed"
     xorriso -as mkisofs  \
     -V 'PVE' \
-    -o $targetdir/proxmox-ve-$target_arch-$isodate2.iso \
+    -o $targetdir/$ISONAME-$RELEASE-$ISORELEASE-$target_arch-$isodate2.iso \
     --grub2-mbr --interval:local_fs:0s-15s:zero_mbrpt,zero_gpt,zero_apm:'./boot/iso.mbr' \
     --modification-date=$isodate2 \
     -partition_cyl_align off \
@@ -348,7 +385,7 @@ mkefi_img(){
     mkdir /tmp/efi/
     mount $targetdir/iso/boot/grub/efi.img /tmp/efi
     cp -r $targetdir/iso/EFI  /tmp/efi  ||errlog "do EFI file failed"
-    umount -l /tmp/efi 
+    umount -l /tmp/efi
 }
 
 
@@ -368,7 +405,7 @@ if [ ! -f "$targetdir/.grub.lock" ];then
 	efi_gop all_video gfxterm font \
 	echo read help ls cat halt reboot lvm ext2 xfs  hfsplus hfs \
     acpi search_label search search_fs_file search_fs_uuid \
-    serial terminfo terminal  
+    serial terminfo terminal zfs btrfs efifwsetup
 
     cp -r /boot/grub/ $targetdir/iso/boot/  ||errlog "do grub dir failed"
     cp $script_dir/grub.cfg $targetdir/iso/boot/grub/  ||errlog "do copy grub cfg  failed"
@@ -392,13 +429,10 @@ insmod part_sun
 insmod part_sunpc
 EOF
 
-  
 
 }
 
 # Main Start
-script_path=$(readlink -f "\$0")
-script_dir=$(dirname "$script_path")
 umount_proc
 
 if [ "$1" == "clean" ];then
@@ -417,8 +451,4 @@ mkefi_img
 overlayfs
 copy_squ
 
-if [ "$target_arch" == "amd64" ];then
 build_amd64_iso
-else
-build_iso
-fi            

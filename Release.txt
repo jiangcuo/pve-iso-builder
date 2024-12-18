@@ -1,5 +1,62 @@
 Release Notes:
 --------------
+13.12.2024: Proxmox Virtual Environment 8.3 for Port
+
+ - All packages are built automatically. https://ci.lierfang.com
+ 
+ - Add ceph Squid for loongarch64.
+
+ - Kernel 6.12 with ZFS 2.2.7 for LoongArch.
+
+ - Kernel 5.10-openeuler & 6.1-LTS with ZFS 2.2.7 for Arm64.
+
+ - New Qemu 9.2 
+
+ - LoongArch lbt passthrough support.
+
+ - Fix pcie addr map on Port.
+
+ - Add LoongArch nvram support.
+ 
+ - Add automated installation support for Port.
+
+21.11.2024: Proxmox Virtual Environment 8.3
+
+ - Debian 12.8 Bookworm including latest security updates
+
+ - Kernel 6.8 with ZFS 2.2.6 as default
+
+ - Kernel 6.11 as opt-in
+
+ - QEMU 9.0.2, LXC 6.0.0
+
+ - Ceph Squid 19.2.0 as new supported option
+
+ - latest Ceph 18.2.4 Reef and Ceph 17.2.7 Quincy
+
+ - Improved automated installation, adding optional post-installation
+   notification webhook and first-boot hook.
+
+ - Import of OVA through API and UI.
+
+ - New "Tag View" for a quick and customizable overview of virtual guests.
+
+ - Tighter integration of the Software-Defined Networking (SDN) stack with the
+   firewall.
+
+ - Firewall support for forwarded traffic on the host level and on the VNet
+   level.
+
+ - Webhook target for the notification system.
+
+ - Two new change detection modes for speeding up container backups to Proxmox
+   Backup Server.
+
+ - Seamless upgrade from Proxmox VE 7.4 (EOL 2024-07), see:
+   https://pve.proxmox.com/wiki/Upgrade_from_7_to_8
+
+ - Many more features, misc. bug fixes and improvements, for more details see:
+   https://pve.proxmox.com/wiki/Roadmap#Release_History
 
 24.04.2024: Proxmox Virtual Environment 8.2
 

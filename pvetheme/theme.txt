@@ -1,6 +1,6 @@
 # pve installer grub theme
 
-title-text: "Proxmox VE 8.2 (iso release 1) - https://www.proxmox.com/"
+title-text: "Proxmox VE 8.3 (iso release 1) - https://www.proxmox.com/"
 
 desktop-image: "logo.png"
 
