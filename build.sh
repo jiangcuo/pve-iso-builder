@@ -281,6 +281,7 @@ create_pkg(){
     fi
 
     if [ ! -f "$targetdir/.mainkernel.lock" ];then
+        chroot $targetdir/rootfs apt install initramfs-tools -y
 	    initramfs_hook
 	    chroot $targetdir/rootfs apt install pve-firmware $main_kernel -y ||errlog "kernel installed failed"
 	    echo "copy main kernel"
