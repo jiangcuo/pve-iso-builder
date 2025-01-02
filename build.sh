@@ -2,23 +2,14 @@
 #proxmox arm64 iso builder
 script_path=$(readlink -f "\$0")
 script_dir=$(dirname "$script_path")
-
 extra_pkg="ceph-common ceph-fuse"  #if you want install other package
 hostarch=`arch`     # This scripts only allow the same arch build.
 codename="bookworm"  # proxmox version. bookworm->pve8 ,bullseye->pve7
 targetdir="/tmp/targetdir" # tmpdir
-mirrors="https://mirrors.ustc.edu.cn" #debian mirror
-pvemirrors="https://mirrors.ustc.edu.cn/proxmox/debian" #pve mirrors.
-portmirrors="https://mirrors.lierfang.com/proxmox/debian" #port mirrors
+modules="drm overlay uas hibmc-drm dw_drm_dsi kirin_drm amdgpu nouveau ast radeon virtio-gpu mgag200"
 
 # iso info
 source $script_dir/.cd-info
-
-# add modules to initramfs
-modules="drm overlay uas hibmc-drm dw_drm_dsi kirin_drm amdgpu nouveau ast radeon virtio-gpu mgag200"
-
-main_kernel="pve-kernel-6.1-generic" # this is port mian_kernel. We can override this env on Handling envets
-extra_kernel="pve-kernel-5.10-openeuler" # this is port extra_kernel. We can override this env on Handling envets
 
 # Handling of different architectures
 if [ "$hostarch" == "aarch64" ];then
@@ -263,6 +254,11 @@ create_pkg(){
     else
 	main_pkg="proxmox-backup-server"
     fi
+
+    if [ -f "proxmox/$PRODUCT-packages.list.line" ];then
+        main_pkg=`cat proxmox/$PRODUCT-packages.list.line`
+    fi
+
     chroot $targetdir/rootfs apt --download-only install -y  $main_pkg postfix squashfs-tools traceroute net-tools pci.ids pciutils efibootmgr xfsprogs fonts-liberation dnsutils $extra_pkg $grub_pkg gettext-base sosreport ethtool dmeventd eject chrony locales locales-all systemd rsyslog ifupdown2 ksmtuned zfsutils-linux zfs-zed spl btrfs-progs gdisk bash-completion zfs-initramfs dosfstools||errlog "download proxmox-ve package failed"
 
     if [ ! -z "$extra_kernel" ] && [ "$PRODUCT" != "pbs" ] ;then
