@@ -228,6 +228,10 @@ buildroot(){
 		chroot $targetdir/rootfs apt clean
 	else
 		debootstrap --arch=$target_arch $codename $targetdir/rootfs $mirrors/debian || errlog "debootstrap failed"
+		echo "deb $mirrors/debian/ $codename main contrib non-free non-free-firmware" > $targetdir/rootfs/etc/apt/sources.list
+		echo "deb $mirrors/debian/ "$codename"-updates main contrib non-free non-free-firmware" >> $targetdir/rootfs/etc/apt/sources.list
+		echo "deb $mirrors/debian/ "$codename"-backports main contrib non-free non-free-firmware" >> $targetdir/rootfs/etc/apt/sources.list
+		echo "deb $mirrors/debian-security "$codename"-security main contrib non-free non-free-firmware" >> $targetdir/rootfs/etc/apt/sources.list
 	fi
     mksquashfs $targetdir/rootfs $targetdir/pve-base.squashfs
     fi
