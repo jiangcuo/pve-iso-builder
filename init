@@ -175,7 +175,7 @@ for mod in $modlist; do
     modprobe "$mod"
 done
 
-stdmod="usb-storage uas usbhid usbkbd hid_generic mac_hid virtio_blk"
+stdmod="loop squashfs hfs hfsplus overlay cdrom sr_mod sd_mod usb-storage uas usbhid usbkbd hid_generic mac_hid virtio_blk"
 for mod in $stdmod; do
     modprobe "$mod"
 done
@@ -399,7 +399,7 @@ if [ -f "$INSTALLER_SQFS" ]; then
         if ! exec switch_root -c /dev/console /mnt/.installer-mp /bin/setsid /bin/sh -c "exec /sbin/unconfigured.sh </dev/tty1 >/dev/tty1 2>&1"; then
             debugsh_err_reboot "unable to switch root to installer ($?)"
         fi
-        
+
         # NOTE: should never be reached
     else
         debugsh_err_reboot "unable to find installer (/sbin/unconfigured.sh)"
