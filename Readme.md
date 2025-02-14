@@ -3,7 +3,9 @@
 Please use the Debian system to execute this script ！
 
 #### clean and build
+
 ```
+apt install debootstrap squashfs-tools  xorriso -y
 bash build.sh clean 
 ```
 
