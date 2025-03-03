@@ -1,10 +1,10 @@
 RELEASE='8.3'
 ISORELEASE='1'
-ISONAME='proxmox-ve'
-PRODUCT='pve'
-PRODUCTLONG='Proxmox VE'
+ISONAME='pxvirt'
+PRODUCT='pxvirt'
+PRODUCTLONG='pxvirt'
 main_kernel="pve-kernel-6.6-openeuler"
 extra_kernel=""
 mirrors="https://mirrors.ustc.edu.cn" #debian mirror
 pvemirrors="https://mirrors.ustc.edu.cn/proxmox/debian" #pve mirrors.
-portmirrors="https://mirrors.lierfang.com/proxmox/debian" #port mirrors
+portmirrors="https://download.lierfang.com/pxcloud" #port mirrors

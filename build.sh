@@ -28,7 +28,6 @@ elif [ "$hostarch" == "loongarch64" ];then
     grub_prefix="loongarch64"
     grub_file="BOOTLOONGARCH64.EFI"
     grub_pkg="grub-common  grub-efi-loong64-bin grub-efi-loong64 grub2-common"
-    codename="sid"
     portmirrors="https://mirrors.lierfang.com/proxmox/debian"
     if [ "$PRODUCT" == "pbs" ];then
         main_kernel="pve-kernel-6.12-4k-pve"  #pbs need 4k kernel
@@ -68,7 +67,7 @@ isofs(){
 
 # Crate Proxmox VE iso info
 isoinfo(){
-echo $pveuuid > $targetdir/iso/.pve-cd-id.txt
+echo $pveuuid > $targetdir/iso/.pxvirt-cd-id.txt
 }
 
 
@@ -90,7 +89,7 @@ umount_proc(){
 
 # Create proxmox installer initrd hook
 initramfs_hook(){
-    cp $targetdir/iso/.pve-cd-id.txt $targetdir/rootfs/ || errlog "copy .pve-cd-id.txt  failed"
+    cp $targetdir/iso/.pxvirt-cd-id.txt $targetdir/rootfs/ || errlog "copy .pxvirt-cd-id.txt  failed"
     cp $targetdir/iso/.cd-info $targetdir/rootfs/ || errlog "copy .cd-info   failed"
     cp $script_dir/init $targetdir/rootfs/usr/share/initramfs-tools || errlog "copy initpve   failed"
     cp $script_dir/pve_init_hook $targetdir/rootfs/usr/share/initramfs-tools/hooks/ || errlog "copy pve_init_hook   failed"
@@ -130,21 +129,16 @@ VIDEOMODE=
 EOF
 }
 
-# Create pve-installer.squashfs
+# Create pxvirt-installer.squashfs
 overlayfs(){
     if [ ! -f "$targetdir/.overlay.lock" ];then
         rm $targetdir/overlay/ -rf
         mkdir $targetdir/overlay/{base,upper,work,mount} -p
-        mount -t squashfs -o ro $targetdir/pve-base.squashfs  $targetdir/overlay/base || errlog "mount pve-base.squashfs filesystem failed"
+        mount -t squashfs -o ro $targetdir/pxvirt-base.squashfs  $targetdir/overlay/base || errlog "mount pxvirt-base.squashfs filesystem failed"
         mount -t overlay -o lowerdir=$targetdir/overlay/base,upperdir=$targetdir/overlay/upper,workdir=$targetdir/overlay/work  none $targetdir/overlay/mount || errlog "mount squashfs filesystem failed"
 
-        if [ "$target_arch" == "amd64" ];then
-            curl -L $pvemirrors/proxmox-release-$codename.gpg    -o $targetdir/overlay/mount/etc/apt/trusted.gpg.d/proxmox-release-$codename.gpg
-            echo "deb $pvemirrors/$PRODUCT $codename $PRODUCT-no-subscription " > $targetdir/overlay/mount/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
-        else
-            curl -L $portmirrors/pveport.gpg -o $targetdir/overlay/mount/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
-            echo "deb $portmirrors/$PRODUCT $codename port" > $targetdir/overlay/mount/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
-        fi
+        curl -L https://mirrors.lierfang.com/proxmox/debian/pveport.gpg -o $targetdir/overlay/mount/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
+        echo "deb $portmirrors/$PRODUCT $codename main" > $targetdir/overlay/mount/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
         chroot $targetdir/overlay/mount apt update || errlog "apt update failed"
         debconfig_set
         debconfig_write
@@ -159,18 +153,18 @@ overlayfs(){
         touch $targetdir/.overlay.lock
     fi
 
-    rm -rf $targetdir/overlay/upper/tmp/  $targetdir/pve-installer.squashfs
-    cp $targetdir/iso/.pve-cd-id.txt $targetdir/overlay/upper/ || errlog "copy .pve-cd-id.txt  failed"
+    rm -rf $targetdir/overlay/upper/tmp/  $targetdir/pxvirt-installer.squashfs
+    cp $targetdir/iso/.pxvirt-cd-id.txt $targetdir/overlay/upper/ || errlog "copy .pxvirt-cd-id.txt  failed"
     cp $targetdir/iso/.cd-info $targetdir/overlay/upper/ || errlog "copy .cd-info  failed"
     mkdir  $targetdir/overlay/upper/cdrom -p
-    mksquashfs $targetdir/overlay/upper/ $targetdir/pve-installer.squashfs || errlog "create pve-installer.squashfs failed"
+    mksquashfs $targetdir/overlay/upper/ $targetdir/pxvirt-installer.squashfs || errlog "create pxvirt-installer.squashfs failed"
     touch $targetdir/.pve-installer.lock
 }
 
 
 copy_squ(){
-    cp $targetdir/pve-installer.squashfs $targetdir/iso/pve-installer.squashfs
-    cp $targetdir/pve-base.squashfs $targetdir/iso/pve-base.squashfs
+    cp $targetdir/pxvirt-installer.squashfs $targetdir/iso/pxvirt-installer.squashfs
+    cp $targetdir/pxvirt-base.squashfs $targetdir/iso/pxvirt-base.squashfs
 }
 
 
@@ -218,9 +212,9 @@ env_test(){
     test -f "/usr/bin/xorriso" || errlog "xorriso not found, use 'apt install xorriso' to install"
 }
 
-# Build pve-base.squashfs
+# Build pxvirt-base.squashfs
 buildroot(){
-    if [ ! -f "$targetdir/pve-base.squashfs" ];then
+    if [ ! -f "$targetdir/pxvirt-base.squashfs" ];then
 	if [  "$hostarch" == "loongarch64" ];then
 		debootstrap --arch=$target_arch  --include=debian-ports-archive-keyring --exclude="exim4,exim4-base,usr-is-merged" --include="usrmerge,perl" --no-check-gpg $codename $targetdir/rootfs https://mirrors.lierfang.com/debian-ports/debian || errlog "debootstrap failed"
 		chroot $targetdir/rootfs apt install usr-is-merged -y
@@ -233,7 +227,7 @@ buildroot(){
 		echo "deb $mirrors/debian/ "$codename"-backports main contrib non-free non-free-firmware" >> $targetdir/rootfs/etc/apt/sources.list
 		echo "deb $mirrors/debian-security "$codename"-security main contrib non-free non-free-firmware" >> $targetdir/rootfs/etc/apt/sources.list
 	fi
-    mksquashfs $targetdir/rootfs $targetdir/pve-base.squashfs
+    mksquashfs $targetdir/rootfs $targetdir/pxvirt-base.squashfs
     fi
 }
 
@@ -242,18 +236,13 @@ buildroot(){
 create_pkg(){
     mount_proc
     if [ ! -f  "$targetdir/.package.lock" ];then
-        if [ "$target_arch" == "amd64" ];then
-            curl -L $pvemirrors/proxmox-release-$codename.gpg    -o $targetdir/rootfs/etc/apt/trusted.gpg.d/proxmox-release-$codename.gpg
-            echo "deb $pvemirrors/$PRODUCT $codename $PRODUCT-no-subscription " > $targetdir/rootfs/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
-        else
-            curl -L $portmirrors/pveport.gpg -o $targetdir/rootfs/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
-            echo "deb $portmirrors/$PRODUCT $codename port pvetest" > $targetdir/rootfs/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
-        fi 
+    curl -L https://mirrors.lierfang.com/proxmox/debian/pveport.gpg -o $targetdir/rootfs/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
+    echo "deb $portmirrors/$PRODUCT $codename main" > $targetdir/rootfs/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
     chroot $targetdir/rootfs apt clean
     rm -rf $targetdir/rootfs/var/cache/apt/archives/
     chroot $targetdir/rootfs apt update ||errlog "do apt update failed"
 
-    if [ "$PRODUCT" == "pve" ];then
+    if [ "$PRODUCT" == "pxvirt" ];then
 	main_pkg="proxmox-ve"
     else
 	main_pkg="proxmox-backup-server"

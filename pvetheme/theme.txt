@@ -1,14 +1,14 @@
 # pve installer grub theme
 
-title-text: "Proxmox VE 8.3 (iso release 1) - https://www.proxmox.com/"
+title-text: "PXVIRT 8.3 (iso release 2) - https://www.lierfang.com/"
 
 desktop-image: "logo.png"
 
 
 # Show the boot menu
 + boot_menu {
-  left = 20%
-  top = 55%
+  left = 25%
+  top = 45%
   width = 50%
   height = 35%
 
@@ -20,17 +20,6 @@ desktop-image: "logo.png"
   item_spacing = 1
 }
 
-+ label {
-  left = 20%
-  top = 90%
-  width = 60%
-  height = 35%
-
-  color = "#777"
-  align = "center"
-
-  text = "enter: select, arrow keys: navigate, e: edit entry, esc: back"
-}
 
 + label {
    id = "__timeout__"

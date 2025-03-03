@@ -18,4 +18,4 @@ esac
 
 mkdir ${DESTDIR}/proc ${DESTDIR}/sys ${DESTDIR}/dev ${DESTDIR}/mnt -p
 copy_exec /.cd-info /
-copy_exec /.pve-cd-id.txt /
+copy_exec /.pxvirt-cd-id.txt /

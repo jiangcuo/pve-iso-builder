@@ -12,10 +12,10 @@ else
     # NOTE: the only reason for not exiting now is trying to provide a shell
     # for debugging this mess
     /bin/echo "[ERROR] could not source .cd-info file!"
-    /bin/echo "[WARN] trying fallback to PVE, but the installation will likely fail."
+    /bin/echo "[WARN] trying fallback to PXVIRT, but the installation will likely fail."
     /bin/echo "[WARN] check your installation medium and the downloaded ISO"
-    PRODUCT="PVE"
-    PRODUCTLONG="Proxmox VE"
+    PRODUCT="PXVIRT"
+    PRODUCTLONG="PXVIRT"
     RELEASE="?.?"
 fi
 
@@ -283,11 +283,11 @@ else
 
     cdrom=
 
-    initrdisoimage="/proxmox.iso"
+    initrdisoimage="/pxvirt.iso"
 
     if [ -f $initrdisoimage ]; then
         # this is useful for PXE boot
-        echo "found proxmox ISO image inside initrd image"
+        echo "found pxvirt ISO image inside initrd image"
         if mount -t iso9660 -o loop,ro $initrdisoimage /mnt >/dev/null 2>&1; then
             cdrom=$initrdisoimage
         fi
@@ -319,7 +319,7 @@ else
                                 cdrom=$path
                                 break
                             else
-                                echo "found ISO9660 FS but no, or wrong proxmox cd-id, skipping"
+                                echo "found ISO9660 FS but no, or wrong pxvirt cd-id, skipping"
                             fi
                             umount /mnt
                         fi
@@ -357,7 +357,7 @@ BASE_SQFS="/mnt/$PRODUCT_LC-base.squashfs"
 INSTALLER_SQFS="/mnt/$PRODUCT_LC-installer.squashfs"
 
 if [ -f "$INSTALLER_SQFS" ]; then
-    # this is a Proxmox XYZ installation CD
+    # this is a pxvirt XYZ installation CD
 
     # hostid (gethostid(3)) is used by zfs to identify which system imported a pool last it needs
     # to be present in /etc/hostid before spl.ko is loaded create it in the installer and copy it
