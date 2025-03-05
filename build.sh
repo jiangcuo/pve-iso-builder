@@ -2,7 +2,7 @@
 #proxmox arm64 iso builder
 script_path=$(readlink -f "\$0")
 script_dir=$(dirname "$script_path")
-extra_pkg="ceph-common ceph-fuse"  #if you want install other package
+extra_pkg="ceph-common ceph-fuse iperf3"  #if you want install other package
 hostarch=`arch`     # This scripts only allow the same arch build.
 codename="bookworm"  # proxmox version. bookworm->pve8 ,bullseye->pve7
 targetdir="/tmp/targetdir" # tmpdir
@@ -314,27 +314,7 @@ create_pkg(){
     umount_proc
 }
 
-# Build iso for !amd64
 build_iso(){
-    rm $targetdir/iso/*.iso -rf
-    isodate2=`echo $isodate|sed  "s/-//g"`
-    cd $targetdir/iso/
-    xorriso -as mkisofs -r  -V 'PVE' \
-    --modification-date=$isodate2 \
-    -o $targetdir/$ISONAME-$RELEASE-$ISORELEASE-$target_arch-$isodate2.iso \
-    -R -cache-inodes \
-    -iso-level 3 \
-    -e boot/grub/efi.img \
-    -no-emul-boot \
-    -append_partition 2 0xef boot/grub/efi.img \
-    -partition_cyl_align all \
-    -isohybrid-gpt-basdat -isohybrid-apm-hfsplus \
-    .
-    cd $script_dir
-}
-
-# Build iso for amd64
-build_amd64_iso(){
     rm $targetdir/iso/*.iso -rf
     isodate2=`echo $isodate|sed  "s/-//g"`
     cd $targetdir/iso/
@@ -360,6 +340,7 @@ build_amd64_iso(){
     -boot-info-table \
     --grub2-boot-info \
     -eltorito-alt-boot \
+    -iso-level 3 \
     -e '/boot/grub/efi.img' \
     -no-emul-boot \
     -boot-load-size 16384 \
@@ -441,4 +422,4 @@ mkefi_img
 overlayfs
 copy_squ
 
-build_amd64_iso
+build_iso
