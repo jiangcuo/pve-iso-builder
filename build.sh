@@ -22,7 +22,6 @@ elif [ "$hostarch" == "x86_64" ];then
     grub_prefix="x86_64"
     grub_file="BOOTX64.EFI"
     grub_pkg="grub-common grub-pc-bin grub-efi-amd64-bin systemd-boot grub-efi-amd64-signed shim-signed  grub-efi-amd64 grub2-common"
-    main_kernel="proxmox-kernel-6.8"
 elif [ "$hostarch" == "loongarch64" ];then
     target_arch="loong64"
     grub_prefix="loongarch64"
@@ -146,6 +145,9 @@ overlayfs(){
         fix_console_setup
         mkdir $targetdir/overlay/mount/usr/lib/modules/
         cp -r $targetdir/rootfs/lib/modules/* $targetdir/overlay/mount/usr/lib/modules/
+        #create grub use overlay binary
+        grub_install
+        mkefi_img
         chroot $targetdir/overlay/mount/ apt clean
         rm -rf $targetdir/overlay/mount/var/cache/apt/archives/
         umount $targetdir/overlay/mount   || errlog "umount overlayfs failed"
@@ -252,17 +254,13 @@ create_pkg(){
         main_pkg=`cat proxmox/$PRODUCT-packages.list.line`
     fi
 
-    chroot $targetdir/rootfs apt --download-only install -y  $main_pkg postfix squashfs-tools traceroute net-tools pci.ids pciutils efibootmgr xfsprogs fonts-liberation dnsutils $extra_pkg $grub_pkg gettext-base sosreport ethtool dmeventd eject chrony locales locales-all systemd rsyslog ifupdown2 ksmtuned zfsutils-linux zfs-zed spl btrfs-progs gdisk bash-completion zfs-initramfs dosfstools||errlog "download proxmox-ve package failed"
+    chroot $targetdir/rootfs apt --download-only install -y  $main_pkg  postfix squashfs-tools traceroute net-tools pci.ids pciutils efibootmgr xfsprogs fonts-liberation dnsutils $extra_pkg $grub_pkg gettext-base sosreport ethtool dmeventd eject chrony locales locales-all systemd rsyslog ifupdown2 ksmtuned zfsutils-linux zfs-zed spl btrfs-progs gdisk bash-completion zfs-initramfs dosfstools||errlog "download proxmox-ve package failed"
 
     if [ ! -z "$extra_kernel" ] && [ "$PRODUCT" != "pbs" ] ;then
-	if [ "$target_arch" == "arm64"  ]  || [ "$target_arch" == "loong64"  ] ;then
-        	chroot $targetdir/rootfs apt --download-only install -y  $extra_kernel ||errlog "kernel installed failed"
-    	fi
+       	chroot $targetdir/rootfs apt --download-only install -y  $extra_kernel ||errlog "kernel installed failed"
     fi
 
-    if [ "$target_arch" != "amd64" ];then
-        chroot $targetdir/rootfs apt --download-only install -y $main_kernel  ||errlog "kernel installed failed"
-    fi
+    chroot $targetdir/rootfs apt --download-only install -y $main_kernel  ||errlog "kernel installed failed"
 
     mkdir $targetdir/iso/proxmox/packages/ -p
     cp -r $targetdir/rootfs/var/cache/apt/archives/*.deb $targetdir/iso/proxmox/packages/  ||errlog "do copy pkg failed"
@@ -369,7 +367,9 @@ if [ ! -f "$targetdir/.grub.lock" ];then
     mkdir $targetdir/iso/EFI/BOOT/ -p
     mkdir $targetdir/iso/boot/grub -p
     echo "do grub install"
-    grub-mkimage -o $targetdir/iso/EFI/BOOT/$grub_file -O $grub_prefix-efi -p /EFI/BOOT/ \
+    mkdir $targetdir/overlay/mount/efi
+    mount -o bind $targetdir/iso/EFI/BOOT/ $targetdir/overlay/mount/efi
+    chroot $targetdir/overlay/mount/ grub-mkimage -o /efi/$grub_file -O $grub_prefix-efi -p /EFI/BOOT/ \
 	boot linux chain normal configfile \
 	part_gpt part_msdos fat iso9660 udf \
 	test true keystatus loopback regexp probe \
@@ -377,6 +377,9 @@ if [ ! -f "$targetdir/.grub.lock" ];then
 	echo read help ls cat halt reboot lvm ext2 xfs  hfsplus hfs \
     acpi search_label search search_fs_file search_fs_uuid \
     serial terminfo terminal zfs btrfs efifwsetup
+    
+    umount $targetdir/overlay/mount/efi
+    rm -rf $targetdir/overlay/mount/efi
 
     cp -r /boot/grub/ $targetdir/iso/boot/  ||errlog "do grub dir failed"
     cp $script_dir/grub.cfg $targetdir/iso/boot/grub/  ||errlog "do copy grub cfg  failed"
@@ -417,8 +420,6 @@ isofs
 isoinfo
 buildroot
 create_pkg
-grub_install
-mkefi_img
 overlayfs
 copy_squ
 
