@@ -27,11 +27,8 @@ elif [ "$hostarch" == "loongarch64" ];then
     grub_prefix="loongarch64"
     grub_file="BOOTLOONGARCH64.EFI"
     grub_pkg="grub-common  grub-efi-loong64-bin grub-efi-loong64 grub2-common"
-    portmirrors="https://mirrors.lierfang.com/proxmox/debian"
     if [ "$PRODUCT" == "pbs" ];then
         main_kernel="pve-kernel-6.12-4k-pve"  #pbs need 4k kernel
-    else
-	main_kernel="pve-kernel-6.12-pve"     #for loongarch kernel 6.12  works fine
     fi
     extra_kernel=""
 elif [ "$hostarch" == "riscv64" ];then
@@ -218,7 +215,7 @@ env_test(){
 buildroot(){
     if [ ! -f "$targetdir/pxvirt-base.squashfs" ];then
 	if [  "$hostarch" == "loongarch64" ];then
-		debootstrap --arch=$target_arch  --include=debian-ports-archive-keyring --exclude="exim4,exim4-base,usr-is-merged" --include="usrmerge,perl" --no-check-gpg $codename $targetdir/rootfs https://mirrors.lierfang.com/debian-ports/debian || errlog "debootstrap failed"
+		debootstrap --arch=$target_arch  --include=debian-ports-archive-keyring --exclude="exim4,exim4-base,usr-is-merged" --include="usrmerge,perl" --no-check-gpg sid $targetdir/rootfs https://mirrors.lierfang.com/debian-ports/debian || errlog "debootstrap failed"
 		chroot $targetdir/rootfs apt install usr-is-merged -y
 		echo 'APT { Get { AllowUnauthenticated "1"; }; };' > $targetdir/rootfs/etc/apt/apt.conf.d/99allow_unauth
 		chroot $targetdir/rootfs apt clean
