@@ -1,3 +1,24 @@
+PXVIRT 终端用户许可协议 
+
+使用PXVIRT软件即表示您接受本EULA，并且您已阅读并理解条款和条件。这也适用于代表实体行事的个人。本EULA不提供支持订阅服务作为软件维护、更新和支持的任何权利。请查阅支持订阅协议以了解这些条款和条件。本EULA适用于任何版本的PXVIRT以及任何相关的更新、源代码和结构（程序），无论其交付机制如何。PXVIRT基于Proxmox VE再次开发而成，属于Proxmox VE变体，由Lierfang进行驱动。PXVIRT 遵循 GNU Affero General Public License v3 (AGPLv3) 。PXVIRT包含了很多Proxmox公司的代码，在接受本EULA之前，您还应该遵守Proxmox的EULA。使用本软件即表示您同意以下条款。
+
+1. 许可。您获得以下权利（需遵守 AGPLv3），运行、复制、修改、分发本软件（包括二进制和源代码形式），通过网络向第三方提供本软件服务时，必须公开相关源代码。本软件包含以下组件：
+    a. Proxmox VE 原始代码（版权归 Proxmox Server Solutions GmbH 所有）。
+    b. PXVIRT 增改部分（版权归 Lierfang（梨儿方） 所有）。
+    c. 第三方软件包，你需要遵守第三方软件包的许可，如果你不同意，则不能安装他们。
+
+2. 源代码要求。若您通过网络提供本软件服务，必须在服务启动时提供源代码获取途径（如网站链接），公开所有修改后的代码，包括您的自定义部分。
+
+3. 商标与品牌。PXVIRT基于Proxmox VE，PXVIRT是Lierfang的品牌，Proxmox是Proxmox Server Solutions GmbH的商标，未均授权，均不可使用商标或者logo。
+
+4. 保修免责。本软件按 "现状" 提供，不提供任何形式的担保，包括但不限于适销性、特定用途适用性或非侵权保证。
+
+5. 责任限制。对于因使用本软件导致的直接或间接损失（如数据丢失、业务中断），Lierfang 不承担任何责任。最高赔偿金额不超过您支付的软件费用（如有）。
+
+Copyright © 2022-2025 成都市梨儿方信息技术有限责任公司.
+
+附Proxmox Server Solutions GmbH的许可协议
+
 END USER LICENSE AGREEMENT (EULA) FOR PROXMOX VIRTUAL ENVIRONMENT (PROXMOX VE)
 
 By using Proxmox VE software you agree that you accept this EULA, and that you have read and understand the terms and conditions. This also applies for individuals acting on behalf of entities. This EULA does not provide any rights to Support Subscriptions Services as software maintenance, updates and support. Please review the Support Subscriptions Agreements for these terms and conditions. The EULA applies to any version of Proxmox VE and any related update, source code and structure (the Programs), regardless of the delivery mechanism.

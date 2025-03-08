@@ -57,7 +57,7 @@ isofs(){
     rm $targetdir/iso/ -rf
     mkdir $targetdir/iso/boot/ -p
     mkdir $targetdir/iso/{.installer,.base,.installer-mp,.workdir} -p
-    cp $script_dir/.cd-info $script_dir/Release.txt $script_dir/COPYING $script_dir/COPYRIGHT $script_dir/EULA   $targetdir/iso/  ||errlog "do copy elua to iso dir failed"
+    cp $script_dir/.cd-info $script_dir/Release.txt $script_dir/COPYING $script_dir/COPYRIGHT $script_dir/EULA  $script_dir/PXVIRT_EULA  $targetdir/iso/  ||errlog "do copy elua to iso dir failed"
     cp -r $script_dir/proxmox $targetdir/iso/  ||errlog "do proxmox dir to iso dir failed"
     echo "" >  $targetdir/iso/auto-installer-capable
     touch  $targetdir/.isofs.lock
