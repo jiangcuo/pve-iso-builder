@@ -1,5 +1,5 @@
 RELEASE='8.3'
-ISORELEASE='1'
+ISORELEASE='2'
 ISONAME='pxvirt'
 PRODUCT='pxvirt'
 PRODUCTLONG='pxvirt'

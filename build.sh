@@ -30,7 +30,6 @@ elif [ "$hostarch" == "loongarch64" ];then
     if [ "$PRODUCT" == "pbs" ];then
         main_kernel="pve-kernel-6.12-4k-pve"  #pbs need 4k kernel
     fi
-    extra_kernel=""
 elif [ "$hostarch" == "riscv64" ];then
     target_arch="riscv64"
     grub_prefix="riscv64"
@@ -251,13 +250,7 @@ create_pkg(){
         main_pkg=`cat proxmox/$PRODUCT-packages.list.line`
     fi
 
-    chroot $targetdir/rootfs apt --download-only install -y  $main_pkg  postfix squashfs-tools traceroute net-tools pci.ids pciutils efibootmgr xfsprogs fonts-liberation dnsutils $extra_pkg $grub_pkg gettext-base sosreport ethtool dmeventd eject chrony locales locales-all systemd rsyslog ifupdown2 ksmtuned zfsutils-linux zfs-zed spl btrfs-progs gdisk bash-completion zfs-initramfs dosfstools||errlog "download proxmox-ve package failed"
-
-    if [ ! -z "$extra_kernel" ] && [ "$PRODUCT" != "pbs" ] ;then
-       	chroot $targetdir/rootfs apt --download-only install -y  $extra_kernel ||errlog "kernel installed failed"
-    fi
-
-    chroot $targetdir/rootfs apt --download-only install -y $main_kernel  ||errlog "kernel installed failed"
+    chroot $targetdir/rootfs apt --download-only install -y  $main_pkg  $main_kernel $extra_kernel postfix squashfs-tools traceroute net-tools pci.ids pciutils efibootmgr xfsprogs fonts-liberation dnsutils $extra_pkg $grub_pkg gettext-base sosreport ethtool dmeventd eject chrony locales locales-all systemd rsyslog ifupdown2 ksmtuned zfsutils-linux zfs-zed spl btrfs-progs gdisk bash-completion zfs-initramfs dosfstools||errlog "download proxmox-ve package failed"
 
     mkdir $targetdir/iso/proxmox/packages/ -p
     cp -r $targetdir/rootfs/var/cache/apt/archives/*.deb $targetdir/iso/proxmox/packages/  ||errlog "do copy pkg failed"
@@ -274,38 +267,6 @@ create_pkg(){
 	    touch $targetdir/.mainkernel.lock
     fi
 
-
-    if [ ! -z "$extra_kernel"  ] && [ "$target_arch" != "amd64"  ] ;then
-
-	chroot $targetdir/rootfs apt install $extra_kernel -y ||errlog "Extra kernel installed failed"
-
-        if [[ "$extra_kernel" =~ "openeuler" ]];then
-            cp $targetdir/rootfs/boot/initrd.img-*-openeuler $targetdir/iso/boot/initrd.img-openeuler  ||errlog "do copy initrd failed"
-            cp $targetdir/rootfs/boot/vmlinuz-*-openeuler  $targetdir/iso/boot/linux26-openeuler  ||errlog "do copy kernel failed"
-        fi
-
-        if [[ "$extra_kernel" =~ -pve ]]; then
-                cp $targetdir/rootfs/boot/initrd.img-*-pve $targetdir/iso/boot/initrd.img-pve  ||errlog "do copy initrd failed"
-                cp $targetdir/rootfs/boot/vmlinuz-*-pve  $targetdir/iso/boot/linux26-pve  ||errlog "do copy kernel failed"
-        fi
-
-        if [[ "$extra_kernel" =~ -generic ]]; then
-                cp $targetdir/rootfs/boot/initrd.img-*-generic $targetdir/iso/boot/initrd.img-generic  ||errlog "do copy initrd failed"
-                cp $targetdir/rootfs/boot/vmlinuz-*-generic  $targetdir/iso/boot/linux26-generic  ||errlog "do copy kernel failed"
-        fi
-
-        if [[ "$extra_kernel" =~ phytium ]]; then
-                cp $targetdir/rootfs/boot/initrd.img-*-phytium $targetdir/iso/boot/initrd.img-phytium  ||errlog "do copy initrd failed"
-                cp $targetdir/rootfs/boot/vmlinuz-*-phytium  $targetdir/iso/boot/linux26-phytium  ||errlog "do copy kernel failed"
-        fi
-    fi
-
-    if [ "$target_arch" == "amd64" ];then
-	echo "copy x86_64 init"
-        cp $targetdir/rootfs/boot/initrd.img* $targetdir/iso/boot/initrd.img  ||errlog "do copy initrd failed"
-        cp $targetdir/rootfs/boot/vmlinuz*  $targetdir/iso/boot/linux26  ||errlog "do copy kernel failed"
-    fi
-
     umount_proc
 }
 
@@ -317,8 +278,8 @@ build_iso(){
     cp $script_dir/iso.mbr $targetdir/iso/boot  ||errlog "do copy iso.mbr failed"
     cp $script_dir/eltorito.img $targetdir/iso/boot  ||errlog "do copy eltorito failed"
     xorriso -as mkisofs  \
-    -V 'PVE' \
-    -o $targetdir/$ISONAME-$RELEASE-$ISORELEASE-$target_arch-$isodate2.iso \
+    -V 'PXVIRT' \
+    -o $targetdir/$ISONAME-$RELEASE-$ISORELEASE-$target_arch.iso \
     --grub2-mbr --interval:local_fs:0s-15s:zero_mbrpt,zero_gpt,zero_apm:'./boot/iso.mbr' \
     --modification-date=$isodate2 \
     -partition_cyl_align off \
