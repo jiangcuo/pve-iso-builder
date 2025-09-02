@@ -132,8 +132,8 @@ overlayfs(){
         mount -t squashfs -o ro $targetdir/pxvirt-base.squashfs  $targetdir/overlay/base || errlog "mount pxvirt-base.squashfs filesystem failed"
         mount -t overlay -o lowerdir=$targetdir/overlay/base,upperdir=$targetdir/overlay/upper,workdir=$targetdir/overlay/work  none $targetdir/overlay/mount || errlog "mount squashfs filesystem failed"
 
-        curl -L https://mirrors.lierfang.com/proxmox/debian/pveport.gpg -o $targetdir/overlay/mount/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
-        echo "deb $portmirrors/$PRODUCT $codename main" > $targetdir/overlay/mount/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
+        curl -L https://download.lierfang.com/pxcloud/pxvirt/pveport.gpg -o $targetdir/overlay/mount/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
+        echo "deb $portmirrors/pxcloud/$PRODUCT $codename main" > $targetdir/overlay/mount/etc/apt/sources.list.d/pxvirt-sources.list  ||errlog "create apt mirrors failed"
         chroot $targetdir/overlay/mount apt update || errlog "apt update failed"
         debconfig_set
         debconfig_write
@@ -234,12 +234,12 @@ buildroot(){
 create_pkg(){
     mount_proc
     if [ ! -f  "$targetdir/.package.lock" ];then
-    curl -L https://download.lierfang.com/pxvirt/pveport.gpg -o $targetdir/rootfs/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
-    echo "deb $portmirrors/$PRODUCT $codename main" > $targetdir/rootfs/etc/apt/sources.list.d/pxvirt-sources.list  ||errlog "create apt mirrors failed"
+    curl -L https://download.lierfang.com/pxcloud/pxvirt/pveport.gpg -o $targetdir/rootfs/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
+    echo "deb $portmirrors/pxcloud/$PRODUCT $codename main" > $targetdir/rootfs/etc/apt/sources.list.d/pxvirt-sources.list  ||errlog "create apt mirrors failed"
     if [ ! -z "$ceph" ];then
     	if [ "$ceph"  == "reef" ] || [ "$ceph"  == "squid" ] || [ "$ceph"  == "quincy" ];then
 	    echo "add ceph mirror"
-	    echo "deb $portmirrors/$PRODUCT $codename ceph-$ceph" >> $targetdir/rootfs/etc/apt/sources.list.d/pxvirt-sources.list  ||errlog "create apt mirrors failed"
+	    echo "deb $portmirrors/pxcloud/$PRODUCT $codename ceph-$ceph" >> $targetdir/rootfs/etc/apt/sources.list.d/pxvirt-sources.list  ||errlog "create apt mirrors failed"
 	    ceph="ceph"
 	else
 	    ceph=""
