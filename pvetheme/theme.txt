@@ -1,6 +1,6 @@
 # pve installer grub theme
 
-title-text: "PXVIRT 8.4 (iso release 2) - https://www.lierfang.com/"
+title-text: "PXVIRT 8.4 for Phytium (iso release 2) - https://www.lierfang.com/"
 
 desktop-image: "logo.png"
 

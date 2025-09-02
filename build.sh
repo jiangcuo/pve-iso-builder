@@ -234,12 +234,12 @@ buildroot(){
 create_pkg(){
     mount_proc
     if [ ! -f  "$targetdir/.package.lock" ];then
-    curl -L https://mirrors.lierfang.com/proxmox/debian/pveport.gpg -o $targetdir/rootfs/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
-    echo "deb $portmirrors/$PRODUCT $codename main" > $targetdir/rootfs/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
+    curl -L https://download.lierfang.com/pxvirt/pveport.gpg -o $targetdir/rootfs/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
+    echo "deb $portmirrors/$PRODUCT $codename main" > $targetdir/rootfs/etc/apt/sources.list.d/pxvirt-sources.list  ||errlog "create apt mirrors failed"
     if [ ! -z "$ceph" ];then
     	if [ "$ceph"  == "reef" ] || [ "$ceph"  == "squid" ] || [ "$ceph"  == "quincy" ];then
 	    echo "add ceph mirror"
-	    echo "deb $portmirrors/$PRODUCT $codename ceph-$ceph" >> $targetdir/rootfs/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
+	    echo "deb $portmirrors/$PRODUCT $codename ceph-$ceph" >> $targetdir/rootfs/etc/apt/sources.list.d/pxvirt-sources.list  ||errlog "create apt mirrors failed"
 	    ceph="ceph"
 	else
 	    ceph=""
@@ -288,7 +288,7 @@ build_iso(){
     cp $script_dir/eltorito.img $targetdir/iso/boot  ||errlog "do copy eltorito failed"
     xorriso -as mkisofs  \
     -V 'PXVIRT' \
-    -o $targetdir/$ISONAME-$RELEASE-$ISORELEASE-$target_arch.iso \
+    -o $targetdir/$ISONAME-$RELEASE-$ISORELEASE-$target_arch-phytium.iso \
     --grub2-mbr --interval:local_fs:0s-15s:zero_mbrpt,zero_gpt,zero_apm:'./boot/iso.mbr' \
     --modification-date=$isodate2 \
     -partition_cyl_align off \

@@ -1,11 +1,11 @@
 RELEASE='8.4'
-ISORELEASE='2'
+ISORELEASE='3'
 ISONAME='pxvirt'
 PRODUCT='pxvirt'
 PRODUCTLONG='pxvirt'
-main_kernel="pve-kernel-6.6-openeuler"
+main_kernel="pve-kernel-6.6-phytium"
 extra_kernel=""
 mirrors="https://mirrors.ustc.edu.cn" #debian mirror
 pvemirrors="https://mirrors.ustc.edu.cn/proxmox/debian" #pve mirrors.
 portmirrors="https://download.lierfang.com/pxcloud" #port mirrors
-ceph=""
+ceph="squid"
