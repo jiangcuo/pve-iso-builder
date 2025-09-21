@@ -7,5 +7,5 @@ main_kernel="pve-kernel-6.6-openeuler"
 extra_kernel=""
 mirrors="https://mirrors.ustc.edu.cn" #debian mirror
 pvemirrors="https://mirrors.ustc.edu.cn/proxmox/debian" #pve mirrors.
-portmirrors="https://download.lierfang.com/pxcloud" #port mirrors
+portmirrors="https://mirrors.lierfang.com/pxcloud" #port mirrors
 ceph=""

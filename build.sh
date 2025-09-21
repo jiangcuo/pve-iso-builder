@@ -47,6 +47,52 @@ errlog(){
 	fi
 }
 
+# 简化Hook系统
+run_hook(){
+    local hook_name="$1"
+    local hook_dir="$script_dir/hooks/$hook_name"
+    
+    if [ -d "$hook_dir" ]; then
+        echo "Running hooks: $hook_name"
+        for hook_script in "$hook_dir"/*.sh; do
+            chmod +x $hook_script
+            if [ -x "$hook_script" ]; then
+                echo "  -> Executing: $(basename $hook_script)"
+                
+                # 传递所有重要变量给hook脚本
+                export TARGETDIR="$targetdir"
+                export SCRIPT_DIR="$script_dir" 
+                export TARGET_ARCH="$target_arch"
+                export HOST_ARCH="$hostarch"
+                export PRODUCT="$PRODUCT"
+                export CODENAME="$codename"
+                export GRUB_PKG="$grub_pkg"
+                export EXTRA_PKG="$extra_pkg"
+                export MAIN_PKG="$main_pkg"
+                export MAIN_KERNEL="$main_kernel"
+                export EXTRA_KERNEL="$extra_kernel"
+                export MODULES="$modules"
+                export PVEUUID="$pveuuid"
+                export ISODATE="$isodate"
+                export MIRRORS="$mirrors"
+                export PORTMIRRORS="$portmirrors"
+                export HOOK_NAME="$hook_name"
+                
+                # 执行hook脚本，先加载通用变量
+                (
+                    # 在子shell中执行，避免污染主脚本环境
+                    if [ -f "$script_dir/hooks/common.sh" ]; then
+                        source "$script_dir/hooks/common.sh"
+                    fi
+                    "$hook_script"
+                ) || errlog "Hook $(basename $hook_script) failed"
+            else
+                echo "脚本无权限"
+            fi
+        done
+    fi
+}
+
 # Create isofs
 isofs(){
     if [ ! -f "$targetdir/.isofs.lock" ];then
@@ -132,8 +178,8 @@ overlayfs(){
         mount -t squashfs -o ro $targetdir/pxvirt-base.squashfs  $targetdir/overlay/base || errlog "mount pxvirt-base.squashfs filesystem failed"
         mount -t overlay -o lowerdir=$targetdir/overlay/base,upperdir=$targetdir/overlay/upper,workdir=$targetdir/overlay/work  none $targetdir/overlay/mount || errlog "mount squashfs filesystem failed"
 
-        curl -L https://mirrors.lierfang.com/proxmox/debian/pveport.gpg -o $targetdir/overlay/mount/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
-        echo "deb $portmirrors/$PRODUCT $codename main" > $targetdir/overlay/mount/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
+        curl -L https://mirrors.lierfang.com/pxcloud/lierfang.gpg -o $targetdir/overlay/mount/etc/apt/trusted.gpg.d/lierfang.gpg ||errlog "download apt key failed"
+        echo "deb $portmirrors/$PRODUCT $codename main" > $targetdir/overlay/mount/etc/apt/sources.list.d/pxvirt-sources.list  ||errlog "create apt mirrors failed"
         chroot $targetdir/overlay/mount apt update || errlog "apt update failed"
         debconfig_set
         debconfig_write
@@ -141,6 +187,13 @@ overlayfs(){
         fix_console_setup
         mkdir $targetdir/overlay/mount/usr/lib/modules/
         cp -r $targetdir/rootfs/lib/modules/* $targetdir/overlay/mount/usr/lib/modules/
+        
+        # addmodules_hook - 用于添加额外的模块
+        run_hook "addmodules"
+        
+        # overlayfs hook - 用于添加overlay的脚本
+        run_hook "overlayfs"
+        
         #create grub use overlay binary
         grub_install
         mkefi_img
@@ -214,7 +267,7 @@ env_test(){
 buildroot(){
     if [ ! -f "$targetdir/pxvirt-base.squashfs" ];then
 	if [  "$hostarch" == "loongarch64" ];then
-		debootstrap --arch=$target_arch  --include=debian-ports-archive-keyring --exclude="exim4,exim4-base,usr-is-merged" --include="usrmerge,perl" --no-check-gpg sid $targetdir/rootfs https://mirrors.lierfang.com/debian-ports/debian || errlog "debootstrap failed"
+		debootstrap --arch=$target_arch  --include=debian-ports-archive-keyring --exclude="exim4,exim4-base,usr-is-merged" --include="usrmerge,perl" --no-check-gpg sid $targetdir/rootfs https://debianports.mirrors.lierfang.com/$codename || errlog "debootstrap failed"
 		chroot $targetdir/rootfs apt install usr-is-merged -y
 		echo 'APT { Get { AllowUnauthenticated "1"; }; };' > $targetdir/rootfs/etc/apt/apt.conf.d/99allow_unauth
 		chroot $targetdir/rootfs apt clean
@@ -225,6 +278,10 @@ buildroot(){
 		echo "deb $mirrors/debian/ "$codename"-backports main contrib non-free non-free-firmware" >> $targetdir/rootfs/etc/apt/sources.list
 		echo "deb $mirrors/debian-security "$codename"-security main contrib non-free non-free-firmware" >> $targetdir/rootfs/etc/apt/sources.list
 	fi
+    
+    # buildroot hook - 用于处理root镜像
+    run_hook "buildroot"
+    
     mksquashfs $targetdir/rootfs $targetdir/pxvirt-base.squashfs
     fi
 }
@@ -234,12 +291,12 @@ buildroot(){
 create_pkg(){
     mount_proc
     if [ ! -f  "$targetdir/.package.lock" ];then
-    curl -L https://mirrors.lierfang.com/proxmox/debian/pveport.gpg -o $targetdir/rootfs/etc/apt/trusted.gpg.d/pveport.gpg ||errlog "download apt key failed"
-    echo "deb $portmirrors/$PRODUCT $codename main" > $targetdir/rootfs/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
+    curl -L https://mirrors.lierfang.com/pxcloud/lierfang.gpg -o $targetdir/rootfs/etc/apt/trusted.gpg.d/lierfang.gpg ||errlog "download apt key failed"
+    echo "deb $portmirrors/$PRODUCT $codename main" > $targetdir/rootfs/etc/apt/sources.list.d/pxvirt-sources.list  ||errlog "create apt mirrors failed"
     if [ ! -z "$ceph" ];then
     	if [ "$ceph"  == "reef" ] || [ "$ceph"  == "squid" ] || [ "$ceph"  == "quincy" ];then
 	    echo "add ceph mirror"
-	    echo "deb $portmirrors/$PRODUCT $codename ceph-$ceph" >> $targetdir/rootfs/etc/apt/sources.list.d/pveport.list  ||errlog "create apt mirrors failed"
+	    echo "deb $portmirrors/$PRODUCT $codename ceph-$ceph" >> $targetdir/rootfs/etc/apt/sources.list.d/pxvirt-sources.list  ||errlog "create apt mirrors failed"
 	    ceph="ceph"
 	else
 	    ceph=""
@@ -286,6 +343,10 @@ build_iso(){
     cp $script_dir/boot.cat $targetdir/iso/boot  ||errlog "do copy boot.cat failed"
     cp $script_dir/iso.mbr $targetdir/iso/boot  ||errlog "do copy iso.mbr failed"
     cp $script_dir/eltorito.img $targetdir/iso/boot  ||errlog "do copy eltorito failed"
+    
+    # build_iso hook - 用于添加文件到iso
+    run_hook "build_iso"
+    
     xorriso -as mkisofs  \
     -V 'PXVIRT' \
     -o $targetdir/$ISONAME-$RELEASE-$ISORELEASE-$target_arch.iso \
@@ -321,6 +382,10 @@ mkefi_img(){
     mkdir /tmp/efi/
     mount $targetdir/iso/boot/grub/efi.img /tmp/efi
     cp -r $targetdir/iso/EFI  /tmp/efi  ||errlog "do EFI file failed"
+    
+    # mkefi_img hook - 用于添加efi文件
+    run_hook "mkefi_img"
+    
     umount -l /tmp/efi
 }
 
@@ -343,12 +408,14 @@ if [ ! -f "$targetdir/.grub.lock" ];then
 	efi_gop all_video gfxterm font \
 	echo read help ls cat halt reboot lvm ext2 xfs  hfsplus hfs \
     acpi search_label search search_fs_file search_fs_uuid \
-    serial terminfo terminal zfs btrfs efifwsetup
+    serial terminfo terminal zfs btrfs efifwsetup fwsetup \
+    usbserial_pl2303 usbserial_usbdebug  usbserial_ftdi  usbserial_common usb smbios \
+
     
     umount $targetdir/overlay/mount/efi
     rm -rf $targetdir/overlay/mount/efi
 
-    cp -r /boot/grub/ $targetdir/iso/boot/  ||errlog "do grub dir failed"
+    cp -r $targetdir/overlay/mount/boot/grub/ $targetdir/iso/boot/  ||errlog "do grub dir failed"
     cp $script_dir/grub.cfg $targetdir/iso/boot/grub/  ||errlog "do copy grub cfg  failed"
     cp -r $script_dir/pvetheme  $targetdir/iso/boot/grub/  ||errlog "do copy grub pvethem failed"
     touch $targetdir/.grub.lock
