@@ -9,3 +9,8 @@ mirrors="https://mirrors.ustc.edu.cn" #debian mirror
 pvemirrors="https://mirrors.ustc.edu.cn/proxmox/debian" #pve mirrors.
 portmirrors="https://mirrors.lierfang.com/pxcloud" #port mirrors
 ceph=""
+
+oeversion="openEuler-24.03-LTS-SP3"                              # dnf --releasever
+oemirrors="https://repo.huaweicloud.com/openeuler"                          # openEuler 源根
+# PXVIRT_REPO_USER / PXVIRT_REPO_PASS
+pxvmirrors="https://ah1.mirrors.lierfang.com:8000/pxcloud/pxvirt/repo/openeuler/24.03"
