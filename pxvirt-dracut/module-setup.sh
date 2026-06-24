@@ -32,5 +32,5 @@ install() {
     # Userspace tools the mount hook needs (most are already pulled in by the
     # base dracut modules; listed explicitly to be safe). losetup is required for
     # the loop-mounted squashfs / embedded ISO.
-    inst_multiple mount umount mkdir cp cat dd blkid losetup switch_root
+    inst_multiple mount umount mkdir cp cat dd blkid losetup switch_root sleep readlink udevadm
 }

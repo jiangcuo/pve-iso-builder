@@ -75,13 +75,9 @@ setup_resolv(){
         || echo "nameserver 223.5.5.5" > $root/etc/resolv.conf
 }
 
-
-# pxvirt.repo 里带 username/password 鉴权,会被打进 squashfs 泄露到 ISO。
-# 装完包后删掉鉴权行(repo 仍保留,装好的系统自行配凭据)。
-strip_pxvirt_repo_auth(){
+remove_pxvirt_repo(){
     local root="$1"
-    [ -f "$root/etc/yum.repos.d/pxvirt.repo" ] || return 0
-    sed -i '/^username=/d;/^password=/d' $root/etc/yum.repos.d/pxvirt.repo
+    rm -f "$root/etc/yum.repos.d/pxvirt.repo"
 }
 
 # 删掉 SSH 主机密钥,避免被烤进 squashfs 导致所有 Live/装机共用同一对密钥。
@@ -221,8 +217,9 @@ install_installer_deb(){
     chroot $targetdir/overlay/mount apt update || errlog "apt update failed"
     debconfig_set
     debconfig_write
-    LC_ALL=C DEBIAN_FRONTEND=noninteractive chroot $targetdir/overlay/mount apt -o DPkg::Options::="--force-confnew" install $grub_pkg openssh-client locales locales-all traceroute squashfs-tools spice-vdagent pci.ids pciutils gettext-base fonts-liberation eject ethtool efibootmgr dmeventd dnsutils lvm2 libstring-shellquote-perl console-setup wget curl vim iputils-* locales busybox initramfs-tools xorg openbox proxmox-installer pve-firmware zfsutils-linux zfs-zed spl btrfs-progs gdisk bash-completion zfs-initramfs dosfstools -y || errlog "install pveinstaller failed"
+    LC_ALL=C DEBIAN_FRONTEND=noninteractive chroot $targetdir/overlay/mount apt -o DPkg::Options::="--force-confnew" install $grub_pkg openssh-client openssh-server tigervnc-standalone-server tigervnc-common locales locales-all traceroute squashfs-tools spice-vdagent pci.ids pciutils gettext-base fonts-liberation eject ethtool efibootmgr dmeventd dnsutils lvm2 libstring-shellquote-perl console-setup wget curl vim iputils-* locales busybox initramfs-tools xorg openbox proxmox-installer pve-firmware zfsutils-linux zfs-zed spl btrfs-progs gdisk bash-completion zfs-initramfs dosfstools -y || errlog "install pveinstaller failed"
     fix_console_setup
+    clean_ssh_hostkeys $targetdir/overlay/mount
 }
 
 # 往 overlay 装 Live 安装环境(openEuler/dnf)。kernel 由 mainkernel_rpm 在干净的
@@ -231,7 +228,7 @@ install_installer_rpm(){
     write_oe_repo $targetdir/overlay/mount
     write_pxvirt_repo $targetdir/overlay/mount
     dnf -y --installroot=$targetdir/overlay/mount --releasever=$oeversion --nogpgcheck install \
-        $grub_pkg openssh-clients glibc-langpack-en squashfs-tools spice-vdagent \
+        $grub_pkg openssh-clients openssh-server tigervnc-server glibc-langpack-en squashfs-tools spice-vdagent \
         hwdata pciutils gettext liberation-fonts util-linux ethtool efibootmgr \
         google-noto-sans-fonts xorg-x11-xinit xorg-x11-xauth \
         lvm2 bind-utils kbd iputils dracut wget curl vim-minimal busybox \
@@ -241,8 +238,8 @@ install_installer_rpm(){
     # 取代 debconf/console-setup
     echo "LANG=en_US.UTF-8" > $targetdir/overlay/mount/etc/locale.conf
     echo "KEYMAP=us"        > $targetdir/overlay/mount/etc/vconsole.conf
-    echo 'root:Pxvirt@Lierfang' | chroot $targetdir/overlay/mount/ chpasswd -c SHA512
-    # clean_ssh_hostkeys $targetdir/overlay/mount
+    clean_ssh_hostkeys $targetdir/overlay/mount
+    remove_pxvirt_repo $targetdir/overlay/mount
 }
 
 # Create pxvirt-installer.squashfs
@@ -354,7 +351,7 @@ env_test(){
 write_oe_repo(){
     local root="$1"
     mkdir -p $root/etc/yum.repos.d
-    cat > $root/etc/yum.repos.d/openEuler-base.repo <<EOF
+    cat > $root/etc/yum.repos.d/openEuler.repo <<EOF
 [OS]
 name=openEuler-OS
 baseurl=$oemirrors/$oeversion/OS/\$basearch/
@@ -382,7 +379,7 @@ EOF
 write_pxvirt_repo(){
     local root="$1"
     mkdir -p $root/etc/yum.repos.d
-    cat > $root/etc/yum.repos.d/pxvirt-base.repo <<EOF
+    cat > $root/etc/yum.repos.d/pxvirt.repo <<EOF
 [pxvirt]
 name=Lierfang PxVirt Repo
 baseurl=$pxvmirrors/\$basearch
@@ -417,10 +414,18 @@ buildroot_rpm(){
         --setopt=install_weak_deps=False \
         --setopt=group_package_types=mandatory \
         --nogpgcheck \
-        --exclude='kernel*,linux-firmware,NetworkManager*,tuned,systemtap*' \
-        install openEuler-release dnf nano net-tools @core  || errlog "dnf installroot base failed"
+        --exclude='kernel*,linux-firmware,NetworkManager*,tuned,systemtap*,firewalld' \
+        install openEuler-release dnf nano net-tools @core tar || errlog "dnf installroot base failed"
     dnf -y --installroot=$targetdir/rootfs clean all
-   # rm -rf $targetdir/rootfs/var/cache/dnf
+
+    # create subid
+    touch $targetdir/rootfs/etc/subuid $targetdir/rootfs/etc/subgid
+    grep -q '^root:100000:65536$' $targetdir/rootfs/etc/subuid || echo 'root:100000:65536' >> $targetdir/rootfs/etc/subuid
+    grep -q '^root:100000:65536$' $targetdir/rootfs/etc/subgid || echo 'root:100000:65536' >> $targetdir/rootfs/etc/subgid
+    chmod 0644 $targetdir/rootfs/etc/subuid $targetdir/rootfs/etc/subgid
+    
+    chroot $targetdir/rootfs systemctl disable firewalld || errlog "disable firewalld failed"
+    rm -rf $targetdir/rootfs/var/cache/dnf
 }
 
 # Build pxvirt-base.squashfs
@@ -491,7 +496,7 @@ create_pkg_rpm(){
         --setopt=install_weak_deps=False \
         install --downloadonly --downloaddir=$rpm_tmp \
         $main_pkg $main_kernel $extra_kernel $extra_pkg $grub_pkg \
-        postfix net-tools pciutils efibootmgr xfsprogs liberation-fonts bind-utils \
+        postfix net-tools pciutils efibootmgr xfsprogs liberation-fonts bind-utils apparmor-parser apparmor-abstractions\
         ethtool chrony glibc-langpack-en systemd rsyslog ifupdown2 lvm2 rsync perl-String-ShellQuote \
         btrfs-progs gdisk dosfstools bash-completion zfs zfs-dracut dracut  kmod linux-firmware ceph \
         || errlog "download pxvirt rpm package failed"
@@ -533,6 +538,21 @@ filter_modules(){
             echo "skip missing kernel module: $m" >&2
         fi
     done
+    echo "$out"
+}
+
+filter_grub_modules(){
+    local root="$1" platform="$2" out="" m
+    shift 2
+
+    for m in "$@"; do
+        if [ -f "$root/usr/lib/grub/$platform/$m.mod" ] || [ -f "$root/boot/grub/$platform/$m.mod" ]; then
+            out="$out $m"
+        else
+            echo "skip missing grub module: $platform/$m.mod" >&2
+        fi
+    done
+
     echo "$out"
 }
 
@@ -641,18 +661,20 @@ if [ ! -f "$targetdir/.grub.lock" ];then
     echo "do grub install"
     # host/overlay 工具名:Debian=grub-mkimage,openEuler=grub2-mkimage
     if [ "$FAMILY" == "rpm" ];then gmkimage="grub2-mkimage"; else gmkimage="grub-mkimage"; fi
+    local grub_platform="$grub_prefix-efi"
+    local grub_modules=$(filter_grub_modules "$targetdir/overlay/mount" "$grub_platform" \
+        boot linux chain normal configfile \
+        part_gpt part_msdos fat iso9660 udf \
+        test true keystatus loopback regexp probe \
+        efi_gop all_video gfxterm font \
+        echo read help ls cat halt reboot lvm ext2 xfs hfsplus hfs \
+        acpi search_label search search_fs_file search_fs_uuid \
+        serial terminfo terminal zfs btrfs efifwsetup \
+        usbserial_pl2303 usbserial_usbdebug usbserial_ftdi usbserial_common usb smbios)
     mkdir $targetdir/overlay/mount/efi
     mount -o bind $targetdir/iso/EFI/BOOT/ $targetdir/overlay/mount/efi
-    chroot $targetdir/overlay/mount/ $gmkimage -o /efi/$grub_file -O $grub_prefix-efi -p /EFI/BOOT/ \
-	boot linux chain normal configfile \
-	part_gpt part_msdos fat iso9660 udf \
-	test true keystatus loopback regexp probe \
-	efi_gop all_video gfxterm font \
-	echo read help ls cat halt reboot lvm ext2 xfs  hfsplus hfs \
-    acpi search_label search search_fs_file search_fs_uuid \
-    serial terminfo terminal zfs btrfs efifwsetup \
-    usbserial_pl2303 usbserial_usbdebug  usbserial_ftdi  usbserial_common usb smbios \
-
+    chroot $targetdir/overlay/mount/ $gmkimage -o /efi/$grub_file -O $grub_platform -p /EFI/BOOT/ \
+        $grub_modules || errlog "grub mkimage failed"
 
     umount $targetdir/overlay/mount/efi
     rm -rf $targetdir/overlay/mount/efi
@@ -664,6 +686,11 @@ if [ ! -f "$targetdir/.grub.lock" ];then
     else
         cp -r $targetdir/overlay/mount/boot/grub/ $targetdir/iso/boot/  ||errlog "do grub dir failed"
     fi
+    
+    if [ -d "$targetdir/overlay/mount/usr/lib/grub/i386-pc" ]; then
+        cp -r $targetdir/overlay/mount/usr/lib/grub/i386-pc $targetdir/iso/boot/grub/  ||errlog "do grub i386-pc failed"
+    fi
+
     cp $script_dir/grub.cfg $targetdir/iso/boot/grub/  ||errlog "do copy grub cfg  failed"
     cp -r $script_dir/pvetheme  $targetdir/iso/boot/grub/  ||errlog "do copy grub pvethem failed"
     touch $targetdir/.grub.lock

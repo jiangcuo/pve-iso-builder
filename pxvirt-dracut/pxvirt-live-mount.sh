@@ -29,6 +29,47 @@ cdid_matches() {
     [ "$(cat "/run/cdrom/$CDID_FN")" = "$reqid" ]
 }
 
+medium_is_ready() {
+    cdid_matches || return 1
+    [ -r /run/cdrom/pxvirt-base.squashfs ] || return 1
+    [ -r /run/cdrom/pxvirt-installer.squashfs ] || return 1
+
+    dd if=/run/cdrom/pxvirt-base.squashfs of=/dev/null bs=4096 count=1 >/dev/null 2>&1 || return 1
+    dd if=/run/cdrom/pxvirt-installer.squashfs of=/dev/null bs=4096 count=1 >/dev/null 2>&1 || return 1
+}
+
+probe_medium() {
+    dev="$1"
+    [ -b "$dev" ] || return 1
+
+    mount -t auto -o ro "$dev" /run/cdrom 2>/dev/null || return 1
+    if medium_is_ready; then
+        info "pxvirt-live: valid PXVIRT medium found on $dev"
+        cdrom="$dev"
+        return 0
+    fi
+
+    info "pxvirt-live: $dev is not a valid PXVIRT medium yet"
+    umount /run/cdrom 2>/dev/null
+    return 1
+}
+
+mount_squashfs_retry() {
+    image="$1"
+    target="$2"
+    desc="$3"
+
+    for try in 1 2 3 4 5; do
+        if mount -t squashfs -o ro,loop "$image" "$target"; then
+            return 0
+        fi
+        warn "pxvirt-live: $desc not readable yet, retrying ($try/5)"
+        sleep 1
+    done
+
+    return 1
+}
+
 cdrom=
 
 # --- Case 1: ISO embedded in / fetched into the initramfs (PXE / netboot) -----
@@ -38,9 +79,10 @@ isoimg="$(getarg rd.pxvirt.isoimg=)"
 : "${isoimg:=/pxvirt.iso}"
 if [ -f "$isoimg" ]; then
     info "pxvirt-live: found embedded ISO image $isoimg (PXE/netboot)"
-    if mount -t iso9660 -o ro,loop "$isoimg" /run/cdrom 2>/dev/null && cdid_matches; then
+    if mount -t iso9660 -o ro,loop "$isoimg" /run/cdrom 2>/dev/null && medium_is_ready; then
         cdrom="$isoimg"
     else
+        info "pxvirt-live: embedded ISO is not a valid PXVIRT medium yet"
         umount /run/cdrom 2>/dev/null
     fi
 fi
@@ -52,37 +94,47 @@ fi
 #   - UltraISO "USB-HDD" / Rufus "ISO mode" -> files on a FAT *partition*
 #   - optical disc                          -> sr0, iso9660
 if [ -z "$cdrom" ]; then
-    for sysdev in /sys/block/sr* /sys/block/scd* /sys/block/sd* \
-                  /sys/block/nvme* /sys/block/hd*; do
-        [ -d "$sysdev" ] || continue
-        base="${sysdev##*/}"
-        size="$(cat "$sysdev/size" 2>/dev/null || echo 0)"
-        rmb="$(cat "$sysdev/removable" 2>/dev/null || echo 0)"
+    delay=1
+    for try in 1 2 3 4 5 6 7 8 9; do
+        if command -v udevadm >/dev/null 2>&1; then
+            udevadm settle --timeout=5 2>/dev/null || true
+        fi
 
-        # whole device + each of its partitions
-        devlist="/dev/$base"
-        for partsys in "$sysdev/$base"*; do
-            [ -d "$partsys" ] && devlist="$devlist /dev/${partsys##*/}"
+        for sysdev in /sys/block/hd* /sys/block/sr* /sys/block/scd* \
+                      /sys/block/sd* /sys/block/nvme*; do
+            [ -d "$sysdev" ] || continue
+            base="${sysdev##*/}"
+            size="$(cat "$sysdev/size" 2>/dev/null || echo 0)"
+            rmb="$(cat "$sysdev/removable" 2>/dev/null || echo 0)"
+
+            # whole device + each of its partitions
+            devlist="/dev/$base"
+            for partsys in "$sysdev/$base"*; do
+                [ -d "$partsys" ] && devlist="$devlist /dev/${partsys##*/}"
+            done
+
+            for dev in $devlist; do
+                [ -b "$dev" ] || continue
+                fstype="$(blkid -o value -s TYPE "$dev" 2>/dev/null)"
+                # Always try mountable media types; for anything else only bother
+                # if the disk is removable or small. Empty fstype can mean the
+                # device exists before filesystem probing has settled.
+                case "$fstype" in
+                    iso9660|udf|vfat|"") : ;;
+                    *) [ "$rmb" = 1 ] || [ "$size" -lt 68157440 ] || continue ;;
+                esac
+
+                probe_medium "$dev" && break
+            done
+            [ -n "$cdrom" ] && break
         done
+        [ -n "$cdrom" ] && break
 
-        for dev in $devlist; do
-            [ -b "$dev" ] || continue
-            fstype="$(blkid -o value -s TYPE "$dev" 2>/dev/null)"
-            # always try mountable media types; for anything else only bother if
-            # the disk is removable or small -- never mount big data/ZFS/LVM disks.
-            case "$fstype" in
-                iso9660|vfat|"") : ;;
-                *) [ "$rmb" = 1 ] || [ "$size" -lt 68157440 ] || continue ;;
-            esac
-
-            mount -t auto -o ro "$dev" /run/cdrom 2>/dev/null || continue
-            if cdid_matches; then
-                cdrom="$dev"
-                break
-            fi
-            umount /run/cdrom 2>/dev/null
-        done
-        [ -n "$cdrom" ] && { info "pxvirt-live: found medium on $cdrom"; break; }
+        if [ "$try" -lt 9 ]; then
+            warn "pxvirt-live: no valid PXVIRT medium found yet, retrying in $delay seconds"
+            sleep "$delay"
+            delay=$((delay + 1))
+        fi
     done
 fi
 
@@ -90,9 +142,9 @@ fi
 [ -n "$cdrom" ] || { warn "pxvirt-live: medium not found yet, retrying"; return 0; }
 
 # --- mount the two squashfs read-only -----------------------------------------
-mount -t squashfs -o ro,loop /run/cdrom/pxvirt-base.squashfs /run/live/base \
+mount_squashfs_retry /run/cdrom/pxvirt-base.squashfs /run/live/base "pxvirt-base.squashfs" \
     || die "pxvirt-live: mounting pxvirt-base.squashfs failed"
-mount -t squashfs -o ro,loop /run/cdrom/pxvirt-installer.squashfs /run/live/installer \
+mount_squashfs_retry /run/cdrom/pxvirt-installer.squashfs /run/live/installer "pxvirt-installer.squashfs" \
     || die "pxvirt-live: mounting pxvirt-installer.squashfs failed"
 
 # --- stack them: installer on top, base below, tmpfs writable layer -----------
