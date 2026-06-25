@@ -1,6 +1,6 @@
 #!/bin/bash
 #proxmox arm64 iso builder
-script_path=$(readlink -f "\$0")
+script_path=$(readlink -f "$0")
 script_dir=$(dirname "$script_path")
 extra_pkg="ceph-common ceph-fuse iperf3 net-sriov-tools"  #if you want install other package
 hostarch=`arch`     # This scripts only allow the same arch build.
@@ -87,37 +87,39 @@ clean_ssh_hostkeys(){
     rm -f $root/etc/ssh/ssh_host_*key $root/etc/ssh/ssh_host_*key.pub 2>/dev/null
 }
 
+# 在脚本入口处调一次,把构建期的全局变量 export 给 hook 子 shell。
+# HOOK_NAME 每个 hook 各异,留在 run_hook 里设置。
+export_hook_env(){
+    export TARGETDIR="$targetdir"
+    export SCRIPT_DIR="$script_dir"
+    export TARGET_ARCH="$target_arch"
+    export HOST_ARCH="$hostarch"
+    export PRODUCT="$PRODUCT"
+    export CODENAME="$codename"
+    export GRUB_PKG="$grub_pkg"
+    export EXTRA_PKG="$extra_pkg"
+    export MAIN_PKG="$main_pkg"
+    export MAIN_KERNEL="$main_kernel"
+    export EXTRA_KERNEL="$extra_kernel"
+    export MODULES="$modules"
+    export PVEUUID="$pveuuid"
+    export ISODATE="$isodate"
+    export MIRRORS="$mirrors"
+    export PORTMIRRORS="$portmirrors"
+}
+
 # 简化Hook系统
 run_hook(){
     local hook_name="$1"
     local hook_dir="$script_dir/hooks/$hook_name"
-    
+
     if [ -d "$hook_dir" ]; then
         echo "Running hooks: $hook_name"
+        export HOOK_NAME="$hook_name"
         for hook_script in "$hook_dir"/*.sh; do
             chmod +x $hook_script
             if [ -x "$hook_script" ]; then
                 echo "  -> Executing: $(basename $hook_script)"
-                
-                # 传递所有重要变量给hook脚本
-                export TARGETDIR="$targetdir"
-                export SCRIPT_DIR="$script_dir" 
-                export TARGET_ARCH="$target_arch"
-                export HOST_ARCH="$hostarch"
-                export PRODUCT="$PRODUCT"
-                export CODENAME="$codename"
-                export GRUB_PKG="$grub_pkg"
-                export EXTRA_PKG="$extra_pkg"
-                export MAIN_PKG="$main_pkg"
-                export MAIN_KERNEL="$main_kernel"
-                export EXTRA_KERNEL="$extra_kernel"
-                export MODULES="$modules"
-                export PVEUUID="$pveuuid"
-                export ISODATE="$isodate"
-                export MIRRORS="$mirrors"
-                export PORTMIRRORS="$portmirrors"
-                export HOOK_NAME="$hook_name"
-                
                 # 执行hook脚本，先加载通用变量
                 (
                     # 在子shell中执行，避免污染主脚本环境
@@ -147,8 +149,13 @@ isofs(){
 }
 
 # Crate Proxmox VE iso info
+# .pxvirt-cd-id.txt:Live 启动期 probe 脚本按内容比对(deb 的 PVE init / rpm 的 pxvirt-dracut 都用)
+# .pxvirt-medium-<uuid>:EFI grub.cfg 用 search --file 寻根的随机标记。
+#   每次构建唯一,多介质同插不撞;ISO9660/FAT/任何文件系统都能命中,
+#   软碟通这类工具解压到 FAT U 盘后也能保留并启动。
 isoinfo(){
-echo $pveuuid > $targetdir/iso/.pxvirt-cd-id.txt
+    echo $pveuuid > $targetdir/iso/.pxvirt-cd-id.txt
+    : > $targetdir/iso/.pxvirt-medium-$pveuuid
 }
 
 
@@ -156,16 +163,17 @@ mount_proc(){
     mount -t proc /proc  $targetdir/rootfs/proc
     mount -t sysfs /sys  $targetdir/rootfs/sys
     mount -o bind /dev  $targetdir/rootfs/dev
-    mount -o bind /dev/pts  $targetdir/dev/pts
+    mount -o bind /dev/pts  $targetdir/rootfs/dev/pts
 }
 
+# 入口处和 errlog 都会调,可能挂载根本不存在,所以每条都 || true 保持幂等
 umount_proc(){
-    umount   $targetdir/rootfs/proc
-    umount   $targetdir/rootfs/sys
-    umount   $targetdir/rootfs/dev
-    umount   $targetdir/dev/rootfs/pts
-    umount -l $targetdir/overlay/mount
-    umount -l $targetdir/overlay/base
+    umount    $targetdir/rootfs/dev/pts     2>/dev/null || true
+    umount    $targetdir/rootfs/dev         2>/dev/null || true
+    umount    $targetdir/rootfs/sys         2>/dev/null || true
+    umount    $targetdir/rootfs/proc        2>/dev/null || true
+    umount -l $targetdir/overlay/mount      2>/dev/null || true
+    umount -l $targetdir/overlay/base       2>/dev/null || true
 }
 
 # Create proxmox installer initrd hook
@@ -299,43 +307,19 @@ copy_squ(){
 
 
 generate_uuid() {
-    local N B T
-
-    for (( N=0; N < 8; N++ )); do
-        B=$(( RANDOM%16 ))
-        printf '%x' $B
-    done
-
-    printf '-'
-
-    for (( N=0; N < 3; N++ )); do
-        for (( i=0; i < 4; i++ )); do
-            B=$(( RANDOM%16 ))
-            printf '%x' $B
-        done
-        printf '-'
-    done
-
-    printf '4'
-    for (( N=0; N < 3; N++ )); do
-        B=$(( RANDOM%16 ))
-        printf '%x' $B
-    done
-
-    T=$(( RANDOM%4+8 ))
-    printf '%x' $T
-
-    for (( N=0; N < 3; N++ )); do
-        B=$(( RANDOM%16 ))
-        printf '%x' $B
-    done
+    if [ -r /proc/sys/kernel/random/uuid ]; then
+        cat /proc/sys/kernel/random/uuid
+    else
+        uuidgen
+    fi
 }
 
 
 # Check env
 env_test(){
     if [ "$EUID" -ne 0 ]; then
-        errlog "This script must be run as root."
+        echo "This script must be run as root."
+        exit 1
     fi
     if [ "$FAMILY" == "rpm" ];then
         command -v dnf >/dev/null            || errlog "dnf not found, build rpm iso on an openEuler host"
@@ -519,11 +503,10 @@ install_pxvirt_dracut(){
     echo "Install Dracut Hook"
     local root="$1"
     local moddir="$root/usr/lib/dracut/modules.d/90pxvirt-live"
-    mkdir -p $moddir
-    cp $script_dir/pxvirt-dracut/module-setup.sh      $moddir/ || errlog "copy dracut module-setup.sh failed"
-    cp $script_dir/pxvirt-dracut/parse-pxvirt-live.sh $moddir/ || errlog "copy dracut parse hook failed"
-    cp $script_dir/pxvirt-dracut/pxvirt-live-mount.sh $moddir/ || errlog "copy dracut mount hook failed"
-    chmod +x $moddir/*.sh
+    local src="$script_dir/pxvirt-dracut"
+    mkdir -p $moddir || errlog "mkdir dracut module dir failed"
+    cp $src/* $moddir/ || errlog "copy dracut module files failed"
+    chmod +x $moddir/*.sh $moddir/pxvirt-live-root
 }
 
 # 过滤出目标内核里真实存在的模块。$modules 是按 Debian/PVE 内核调的,openEuler 内核
@@ -599,25 +582,19 @@ create_pkg(){
 build_iso(){
     rm $targetdir/iso/*.iso -rf
     isodate2=`echo $isodate|sed  "s/-//g"`
-    cd $targetdir/iso/
+    pushd $targetdir/iso/ >/dev/null
     cp $script_dir/boot.cat $targetdir/iso/boot  ||errlog "do copy boot.cat failed"
     cp $script_dir/iso.mbr $targetdir/iso/boot  ||errlog "do copy iso.mbr failed"
     cp $script_dir/eltorito.img $targetdir/iso/boot  ||errlog "do copy eltorito failed"
-    
+
     # build_iso hook - 用于添加文件到iso
     run_hook "build_iso"
-    
+
     xorriso -as mkisofs  \
     -V 'PXVIRT' \
     -o $targetdir/$ISONAME-$RELEASE-$ISORELEASE-$target_arch.iso \
     --grub2-mbr --interval:local_fs:0s-15s:zero_mbrpt,zero_gpt,zero_apm:'./boot/iso.mbr' \
     --modification-date=$isodate2 \
-    -partition_cyl_align off \
-    -partition_offset 0 \
-    -partition_hd_cyl 67 \
-    -partition_sec_hd 32 \
-    -apm-block-size 2048 \
-    -hfsplus \
     -efi-boot-part --efi-boot-image \
     -c '/boot/boot.cat' \
     -b '/boot/eltorito.img' \
@@ -630,7 +607,8 @@ build_iso(){
     -e '/boot/grub/efi.img' \
     -no-emul-boot \
     -boot-load-size 16384 \
-    .
+    . || errlog "build iso failed"
+    popd >/dev/null
 }
 
 
@@ -638,15 +616,16 @@ build_iso(){
 mkefi_img(){
     dd if=/dev/zero of=$targetdir/iso/boot/grub/efi.img bs=512 count=20480
     mkfs.fat -F 16 -n 'EFI' $targetdir/iso/boot/grub/efi.img
-    rm /tmp/efi -rf
-    mkdir /tmp/efi/
-    mount $targetdir/iso/boot/grub/efi.img /tmp/efi
-    cp -r $targetdir/iso/EFI  /tmp/efi  ||errlog "do EFI file failed"
-    
+    # mktemp 避免与残留挂载或并发构建冲突;同名 EFI_MOUNT 透传给 hook(common.sh 已用 ${EFI_MOUNT:-...})
+    export EFI_MOUNT=$(mktemp -d)
+    mount $targetdir/iso/boot/grub/efi.img $EFI_MOUNT
+    cp -r $targetdir/iso/EFI  $EFI_MOUNT  ||errlog "do EFI file failed"
+
     # mkefi_img hook - 用于添加efi文件
     run_hook "mkefi_img"
-    
-    umount -l /tmp/efi
+
+    umount -l $EFI_MOUNT
+    rmdir $EFI_MOUNT 2>/dev/null || true
 }
 
 
@@ -696,7 +675,7 @@ if [ ! -f "$targetdir/.grub.lock" ];then
     touch $targetdir/.grub.lock
 fi
 cat > $targetdir/iso/EFI/BOOT/grub.cfg << EOF
-search --fs-uuid --set=root $isodate
+search --file --set=root /.pxvirt-medium-$pveuuid
 set prefix=(\${root})/boot/grub
 source \${prefix}/grub.cfg
 insmod part_acorn
@@ -725,6 +704,7 @@ fi
 pveuuid=$(generate_uuid)
 isodate=`date +"%Y-%m-%d-%H-%M-%S-00"`
 env_test
+export_hook_env
 isofs
 isoinfo
 # rpm 标记:grub.cfg 据此显示 openEuler/RPM 的 Live 菜单项
