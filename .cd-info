@@ -13,4 +13,4 @@ ceph=""
 oeversion="openEuler-24.03-LTS-SP3"                              # dnf --releasever
 oemirrors="https://repo.huaweicloud.com/openeuler"                          # openEuler 源根
 # PXVIRT_REPO_USER / PXVIRT_REPO_PASS
-pxvmirrors="http://10.13.14.247/pxcloud/pxvirt/repo/openeuler/24.03"
+pxvmirrors="https://mirrors.lierfang.com/pxcloud/pxvirt/repo/openeuler/24.03"

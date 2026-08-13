@@ -50,7 +50,7 @@ if [ "$FAMILY" == "rpm" ];then
     case "$hostarch" in
         x86_64)  grub_pkg="grub2-pc grub2-pc-modules grub2-efi-x64 grub2-efi-x64-modules grub2-tools shim-x64" ;;
         aarch64) grub_pkg="grub2-efi-aa64 grub2-efi-aa64-modules grub2-tools shim-aa64" ;;
-        loongarch64) grub_pkg="grub2-efi-loong64 grub2-efi-loong64-modules grub2-tools" ;;
+        loongarch64) grub_pkg="grub2-efi-loongarch64 grub2-efi-loongarch64-modules grub2-tools" ;;
         riscv64) grub_pkg="grub2-efi-riscv64 grub2-efi-riscv64-modules grub2-tools" ;;
     esac
     # Debian 专属的 extra_pkg 默认值在 rpm 下不适用;需要时在 .cd-info 用 rpm 包名覆盖
@@ -479,7 +479,7 @@ create_pkg_rpm(){
     dnf -y --installroot=$targetdir/rootfs --releasever=$oeversion --nogpgcheck \
         --setopt=install_weak_deps=False \
         install --downloadonly --downloaddir=$rpm_tmp \
-        $main_pkg $main_kernel $extra_kernel $extra_pkg $grub_pkg \
+        $main_pkg $main_kernel $extra_kernel socat $extra_pkg $grub_pkg \
         postfix net-tools pciutils efibootmgr xfsprogs liberation-fonts bind-utils apparmor-parser apparmor-abstractions\
         ethtool chrony glibc-langpack-en systemd rsyslog ifupdown2 lvm2 rsync perl-String-ShellQuote \
         btrfs-progs gdisk dosfstools bash-completion zfs zfs-dracut dracut  kmod linux-firmware ceph \
